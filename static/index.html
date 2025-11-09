@@ -533,6 +533,155 @@
             padding: 0.5rem 0;
         }
 
+        /* Duplicates Modal */
+        .duplicates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .duplicate-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .duplicate-thumbnail {
+            aspect-ratio: 1;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            background: var(--border);
+        }
+
+        .duplicate-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .duplicate-path {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .explorer-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.375rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .explorer-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        /* Tags */
+        .tag-section {
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tag-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tag-input-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .tag-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-family: inherit;
+        }
+
+        .tag-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .tag-autocomplete {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            margin-top: 0.25rem;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            display: none;
+        }
+
+        .tag-autocomplete.show {
+            display: block;
+        }
+
+        .tag-autocomplete-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .tag-autocomplete-item:hover {
+            background: var(--background);
+        }
+
+        .tag-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .tag-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .tag-chip-remove:hover {
+            opacity: 1;
+        }
+
+        .no-tags {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            font-style: italic;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header-content {
@@ -589,6 +738,9 @@
                 <div class="stat-item">
                     <strong id="avgRating">-</strong> avg rating
                 </div>
+                <button id="indexFolderBtn" class="primary" style="margin-left: 1rem;">
+                    📁 Index Folder
+                </button>
             </div>
         </div>
     </header>
@@ -622,6 +774,12 @@
                     <option value="3">3 Stars</option>
                     <option value="4">4 Stars</option>
                     <option value="5">5 Stars</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="tagFilter">Filter by Tag:</label>
+                <select id="tagFilter" multiple style="min-width: 150px;">
+                    <option value="">All tags</option>
                 </select>
             </div>
             <div class="control-group">
@@ -680,6 +838,20 @@
                     <div id="duplicatesContainer"></div>
                     <div id="similarImagesContainer"></div>
                 </div>
+                <div class="tag-section">
+                    <h3>Tags</h3>
+                    <div id="tagChips" class="tag-chips"></div>
+                    <div class="tag-input-container">
+                        <input
+                            type="text"
+                            id="tagInput"
+                            class="tag-input"
+                            placeholder="Add a tag..."
+                            autocomplete="off"
+                        >
+                        <div id="tagAutocomplete" class="tag-autocomplete"></div>
+                    </div>
+                </div>
                 <div class="rating-section">
                     <h3>Your Rating</h3>
                     <div class="rating-input" id="modalRating">
@@ -694,6 +866,72 @@
                         <button id="saveRatingBtn" class="primary">Save Rating</button>
                         <button id="deleteRatingBtn" class="danger">Delete Rating</button>
                         <button class="secondary" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicates Modal -->
+    <div id="duplicatesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="duplicatesModalTitle">Duplicate Images</h2>
+                <button class="close-btn" onclick="closeDuplicatesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="duplicatesGrid" class="duplicates-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Index Folder Modal -->
+    <div id="indexModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Index New Folder</h2>
+                <button class="close-btn" onclick="closeIndexModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-light);">
+                    Choose a folder or enter the full path to a folder containing images. All images will be indexed and thumbnails stored locally.
+                </p>
+
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input
+                        type="text"
+                        id="folderPathInput"
+                        placeholder="/path/to/your/images"
+                        style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.375rem;"
+                    >
+                    <button id="browseFolderBtn" class="secondary" style="padding: 0.75rem 1.5rem;">
+                        Browse...
+                    </button>
+                </div>
+
+                <input
+                    type="file"
+                    id="folderBrowser"
+                    webkitdirectory
+                    directory
+                    multiple
+                    style="display: none;"
+                >
+
+                <button id="startIndexBtn" class="primary" style="width: 100%; margin-bottom: 1rem;">
+                    Start Indexing
+                </button>
+
+                <div id="indexProgress" style="display: none;">
+                    <div style="background: var(--background); padding: 1rem; border-radius: 0.375rem; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <strong id="indexPhase">Scanning...</strong>
+                            <span id="indexStatus"></span>
+                        </div>
+                        <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div id="indexProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                        <p id="indexMessage" style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-light);"></p>
                     </div>
                 </div>
             </div>

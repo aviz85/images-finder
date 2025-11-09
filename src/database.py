@@ -120,6 +120,38 @@ class ImageDatabase:
             CREATE INDEX IF NOT EXISTS idx_rating_value ON ratings(rating)
         """)
 
+        # Tags table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Image-Tag junction table (many-to-many)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS image_tags (
+                image_id INTEGER NOT NULL,
+                tag_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (image_id, tag_id),
+                FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+            )
+        """)
+
+        # Indexes for tags
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tag_name ON tags(name)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_image_tags_image ON image_tags(image_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_image_tags_tag ON image_tags(tag_id)
+        """)
+
         self.conn.commit()
 
     def add_image(self, file_path: str, file_name: str, file_size: int,
@@ -325,18 +357,30 @@ class ImageDatabase:
                                 max_rating: Optional[int] = None,
                                 sort_by: str = 'created_at',
                                 sort_order: str = 'DESC',
-                                unique_only: bool = False) -> List[Dict[str, Any]]:
-        """Get images with their ratings."""
+                                unique_only: bool = False,
+                                tag_ids: Optional[List[int]] = None) -> List[Dict[str, Any]]:
+        """Get images with their ratings, optionally filtered by tags."""
         cursor = self.conn.cursor()
 
-        query = """
-            SELECT i.*, r.rating, r.comment as rating_comment, r.updated_at as rated_at
-            FROM images i
-            LEFT JOIN ratings r ON i.id = r.image_id
-            WHERE i.embedding_index IS NOT NULL
-        """
-
-        params = []
+        # If filtering by tags, we need to join with image_tags
+        if tag_ids:
+            query = """
+                SELECT DISTINCT i.*, r.rating, r.comment as rating_comment, r.updated_at as rated_at
+                FROM images i
+                LEFT JOIN ratings r ON i.id = r.image_id
+                INNER JOIN image_tags it ON i.id = it.image_id
+                WHERE i.embedding_index IS NOT NULL
+                AND it.tag_id IN ({})
+            """.format(','.join('?' * len(tag_ids)))
+            params = list(tag_ids)
+        else:
+            query = """
+                SELECT i.*, r.rating, r.comment as rating_comment, r.updated_at as rated_at
+                FROM images i
+                LEFT JOIN ratings r ON i.id = r.image_id
+                WHERE i.embedding_index IS NOT NULL
+            """
+            params = []
 
         if unique_only:
             query += " AND (i.is_duplicate IS NULL OR i.is_duplicate = 0)"
@@ -475,6 +519,193 @@ class ImageDatabase:
             groups[orig_id] = dup_ids
 
         return groups
+
+    # ==================== Tag Management ====================
+
+    def create_tag(self, name: str) -> int:
+        """
+        Create a new tag or return existing tag ID.
+
+        Args:
+            name: Tag name (case-sensitive, will be trimmed)
+
+        Returns:
+            Tag ID
+        """
+        name = name.strip()
+        if not name:
+            raise ValueError("Tag name cannot be empty")
+
+        cursor = self.conn.cursor()
+
+        # Try to get existing tag
+        cursor.execute("SELECT id FROM tags WHERE name = ?", (name,))
+        row = cursor.fetchone()
+
+        if row:
+            return row['id']
+
+        # Create new tag
+        cursor.execute(
+            "INSERT INTO tags (name) VALUES (?)",
+            (name,)
+        )
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def get_all_tags(self) -> List[Dict[str, Any]]:
+        """
+        Get all tags with usage count.
+
+        Returns:
+            List of tag dictionaries with id, name, count, created_at
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT
+                t.id,
+                t.name,
+                t.created_at,
+                COUNT(DISTINCT it.image_id) as count
+            FROM tags t
+            LEFT JOIN image_tags it ON t.id = it.tag_id
+            GROUP BY t.id
+            ORDER BY t.name ASC
+        """)
+
+        return [dict(row) for row in cursor.fetchall()]
+
+    def add_tag_to_image(self, image_id: int, tag_id: int) -> bool:
+        """
+        Add a tag to an image (uses canonical image ID).
+
+        Args:
+            image_id: Image ID (will be resolved to canonical)
+            tag_id: Tag ID
+
+        Returns:
+            True if tag was added, False if already exists
+        """
+        # Resolve to canonical image
+        canonical_id = self.get_canonical_image_id(image_id)
+
+        cursor = self.conn.cursor()
+
+        # Check if already exists
+        cursor.execute(
+            "SELECT 1 FROM image_tags WHERE image_id = ? AND tag_id = ?",
+            (canonical_id, tag_id)
+        )
+        if cursor.fetchone():
+            return False
+
+        # Add tag
+        cursor.execute(
+            "INSERT INTO image_tags (image_id, tag_id) VALUES (?, ?)",
+            (canonical_id, tag_id)
+        )
+        self.conn.commit()
+        return True
+
+    def remove_tag_from_image(self, image_id: int, tag_id: int) -> bool:
+        """
+        Remove a tag from an image (uses canonical image ID).
+
+        Args:
+            image_id: Image ID (will be resolved to canonical)
+            tag_id: Tag ID
+
+        Returns:
+            True if tag was removed, False if didn't exist
+        """
+        # Resolve to canonical image
+        canonical_id = self.get_canonical_image_id(image_id)
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "DELETE FROM image_tags WHERE image_id = ? AND tag_id = ?",
+            (canonical_id, tag_id)
+        )
+        self.conn.commit()
+        return cursor.rowcount > 0
+
+    def get_tags_for_image(self, image_id: int) -> List[Dict[str, Any]]:
+        """
+        Get all tags for an image (uses canonical image ID).
+
+        Args:
+            image_id: Image ID (will be resolved to canonical)
+
+        Returns:
+            List of tag dictionaries with id, name
+        """
+        # Resolve to canonical image
+        canonical_id = self.get_canonical_image_id(image_id)
+
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT t.id, t.name
+            FROM tags t
+            JOIN image_tags it ON t.id = it.tag_id
+            WHERE it.image_id = ?
+            ORDER BY t.name ASC
+        """, (canonical_id,))
+
+        return [dict(row) for row in cursor.fetchall()]
+
+    def bulk_add_tags(self, image_ids: List[int], tag_ids: List[int]) -> int:
+        """
+        Add multiple tags to multiple images (bulk operation).
+
+        Args:
+            image_ids: List of image IDs (will be resolved to canonical)
+            tag_ids: List of tag IDs
+
+        Returns:
+            Number of new tag associations created
+        """
+        if not image_ids or not tag_ids:
+            return 0
+
+        # Resolve all to canonical IDs
+        canonical_ids = [self.get_canonical_image_id(img_id) for img_id in image_ids]
+
+        cursor = self.conn.cursor()
+        added = 0
+
+        for img_id in canonical_ids:
+            for tag_id in tag_ids:
+                # Check if already exists
+                cursor.execute(
+                    "SELECT 1 FROM image_tags WHERE image_id = ? AND tag_id = ?",
+                    (img_id, tag_id)
+                )
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "INSERT INTO image_tags (image_id, tag_id) VALUES (?, ?)",
+                        (img_id, tag_id)
+                    )
+                    added += 1
+
+        self.conn.commit()
+        return added
+
+    def delete_unused_tags(self) -> int:
+        """
+        Delete tags that are not assigned to any images.
+
+        Returns:
+            Number of tags deleted
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            DELETE FROM tags
+            WHERE id NOT IN (
+                SELECT DISTINCT tag_id FROM image_tags
+            )
+        """)
+        self.conn.commit()
+        return cursor.rowcount
 
     def close(self):
         """Close database connection."""

@@ -38,3 +38,12 @@ top_k_refined: 100  # Final results after re-ranking
 # Processing
 num_workers: 4  # Number of worker threads
 checkpoint_interval: 1000  # Save progress every N images
+
+# Duplicate detection
+# Hamming distance threshold for perceptual hash comparison
+# Lower = stricter (fewer duplicates), Higher = looser (more duplicates)
+# Threshold 0 = 100% identical
+# Threshold 5 = ~92% similar (default)
+# Threshold 10 = ~84% similar
+# Threshold 15 = ~77% similar
+duplicate_hash_threshold: 5

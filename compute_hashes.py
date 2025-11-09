@@ -71,7 +71,10 @@ def compute_hashes_for_existing():
 
     # Now detect and mark duplicates
     print("\nDetecting duplicates...")
-    num_duplicates = db.mark_duplicates(hash_threshold=5)
+    threshold = config.duplicate_hash_threshold
+    similarity_pct = (64 - threshold) / 64 * 100
+    print(f"Using threshold: {threshold} (≈{similarity_pct:.1f}% similarity)")
+    num_duplicates = db.mark_duplicates(hash_threshold=threshold)
     print(f"Found and marked {num_duplicates} duplicate images")
 
     # Show duplicate groups

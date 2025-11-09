@@ -9,6 +9,7 @@ let searchQuery = null;     // text string or image_id
 document.addEventListener('DOMContentLoaded', () => {
     loadImages();
     loadStats();
+    loadTags();
     setupEventListeners();
 });
 
@@ -30,6 +31,10 @@ function setupEventListeners() {
     document.getElementById('sortBy').addEventListener('change', () => loadImages());
     document.getElementById('sortOrder').addEventListener('change', () => loadImages());
     document.getElementById('minRating').addEventListener('change', () => loadImages());
+    document.getElementById('tagFilter').addEventListener('change', () => {
+        currentPage = 1;
+        loadImages();
+    });
     document.getElementById('perPage').addEventListener('change', () => {
         currentPage = 1;
         loadImages();
@@ -38,6 +43,7 @@ function setupEventListeners() {
         currentPage = 1;
         loadImages();
         loadStats();
+        loadTags();
     });
 
     // Modal rating stars
@@ -68,8 +74,11 @@ function setupEventListeners() {
     });
     document.getElementById('findSimilarBtn').addEventListener('click', async () => {
         if (currentImageId) {
+            // Save imageId before closing modal (closeModal sets currentImageId to null)
+            const imageId = currentImageId;
+
             try {
-                const response = await fetch(`/image/${currentImageId}`);
+                const response = await fetch(`/image/${imageId}`);
                 const imageData = await response.json();
 
                 // Close modal
@@ -77,11 +86,10 @@ function setupEventListeners() {
 
                 // Start similarity search
                 setTimeout(() => {
-                    searchBySimilarImage(currentImageId, imageData.file_name);
+                    searchBySimilarImage(imageId, imageData.file_name);
                 }, 100);
             } catch (error) {
                 console.error('Error starting similarity search:', error);
-                showToast('Failed to start similarity search', 'error');
             }
         }
     });
@@ -138,6 +146,15 @@ async function loadImages() {
         const minRating = document.getElementById('minRating').value;
         if (minRating) {
             params.append('min_rating', minRating);
+        }
+
+        // Get selected tag IDs from multiselect
+        const tagFilter = document.getElementById('tagFilter');
+        const selectedTags = Array.from(tagFilter.selectedOptions)
+            .map(option => option.value)
+            .filter(value => value !== ''); // Filter out empty "All tags" option
+        if (selectedTags.length > 0) {
+            params.append('tag_ids', selectedTags.join(','));
         }
 
         const response = await fetch(`/browse?${params}`);
@@ -294,9 +311,16 @@ function createImageCard(image) {
         ? `<div class="folder-tags">${folders.map(f => `<span class="folder-chip" title="${f}">${f}</span>`).join('')}</div>`
         : '';
 
+    // Create duplicate badge HTML
+    const duplicateCount = image.duplicate_count || 0;
+    const duplicateBadgeHtml = duplicateCount > 0
+        ? `<div class="duplicate-badge" onclick="event.stopPropagation(); openDuplicatesModal(${imageId});">🔴 ${duplicateCount}</div>`
+        : '';
+
     card.innerHTML = `
         <div class="image-wrapper">
             <img src="/thumbnail/${imageId}" alt="${image.file_name}" loading="lazy">
+            ${duplicateBadgeHtml}
         </div>
         <div class="image-info">
             <div class="image-name" title="${image.file_name}">${image.file_name}</div>
@@ -439,6 +463,29 @@ async function loadStats() {
     }
 }
 
+// Load tags for filter dropdown
+async function loadTags() {
+    try {
+        const response = await fetch('/tags');
+        const tags = await response.json();
+
+        const tagFilter = document.getElementById('tagFilter');
+
+        // Clear existing options except the "All tags" option
+        tagFilter.innerHTML = '<option value="">All tags</option>';
+
+        // Add tags as options
+        tags.forEach(tag => {
+            const option = document.createElement('option');
+            option.value = tag.id;
+            option.textContent = tag.name;
+            tagFilter.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
 // Open image modal
 async function openImageModal(image) {
     // Handle both 'id' (from browse) and 'image_id' (from search)
@@ -476,6 +523,9 @@ async function openImageModal(image) {
         setStarRating(0);
         modalComment.value = '';
     }
+
+    // Load tags
+    loadImageTags(currentImageId);
 
     // Load similar images
     loadSimilarImages(currentImageId);
@@ -730,5 +780,414 @@ function formatFileSize(bytes) {
     return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
+// Open duplicates modal
+async function openDuplicatesModal(imageId) {
+    const modal = document.getElementById('duplicatesModal');
+    const grid = document.getElementById('duplicatesGrid');
+    const title = document.getElementById('duplicatesModalTitle');
+
+    try {
+        const response = await fetch(`/image/${imageId}/duplicates`);
+        const data = await response.json();
+
+        title.textContent = `Duplicate Images (${data.count})`;
+
+        // Clear previous content
+        grid.innerHTML = '';
+
+        if (data.duplicates && data.duplicates.length > 0) {
+            data.duplicates.forEach(dup => {
+                const item = document.createElement('div');
+                item.className = 'duplicate-item';
+
+                item.innerHTML = `
+                    <div class="duplicate-thumbnail">
+                        <img src="/thumbnail/${dup.id}" alt="${dup.file_name}" loading="lazy">
+                    </div>
+                    <div class="duplicate-path" title="${dup.file_path}">${dup.file_path}</div>
+                    <button class="explorer-btn" onclick="event.stopPropagation(); openInExplorer(${dup.id});" title="Open in Explorer">
+                        🔍
+                    </button>
+                `;
+
+                grid.appendChild(item);
+            });
+        } else {
+            grid.innerHTML = '<p class="no-similar">No duplicates found</p>';
+        }
+
+        modal.classList.add('show');
+    } catch (error) {
+        console.error('Error loading duplicates:', error);
+        grid.innerHTML = '<p class="no-similar">Error loading duplicates</p>';
+        modal.classList.add('show');
+    }
+}
+
+// Close duplicates modal
+function closeDuplicatesModal() {
+    document.getElementById('duplicatesModal').classList.remove('show');
+}
+
+// ==================== Tag Management ====================
+
+let allTags = [];
+let currentImageTags = [];
+
+// Load all available tags
+async function loadAllTags() {
+    try {
+        const response = await fetch('/tags');
+        const data = await response.json();
+        allTags = data.tags || [];
+    } catch (error) {
+        console.error('Error loading tags:', error);
+        allTags = [];
+    }
+}
+
+// Load tags for current image
+async function loadImageTags(imageId) {
+    const tagChips = document.getElementById('tagChips');
+
+    try {
+        const response = await fetch(`/image/${imageId}/tags`);
+        const data = await response.json();
+        currentImageTags = data.tags || [];
+
+        displayTags();
+    } catch (error) {
+        console.error('Error loading image tags:', error);
+        currentImageTags = [];
+        tagChips.innerHTML = '<p class="no-tags">Error loading tags</p>';
+    }
+}
+
+// Display current tags as chips
+function displayTags() {
+    const tagChips = document.getElementById('tagChips');
+
+    if (currentImageTags.length === 0) {
+        tagChips.innerHTML = '<p class="no-tags">No tags yet</p>';
+        return;
+    }
+
+    tagChips.innerHTML = currentImageTags.map(tag => `
+        <div class="tag-chip">
+            <span>${tag.name}</span>
+            <span class="tag-chip-remove" onclick="removeTag(${tag.id})">&times;</span>
+        </div>
+    `).join('');
+}
+
+// Remove tag from image
+async function removeTag(tagId) {
+    if (!currentImageId) return;
+
+    try {
+        await fetch(`/image/${currentImageId}/tags/${tagId}`, {
+            method: 'DELETE'
+        });
+
+        // Reload tags
+        await loadImageTags(currentImageId);
+    } catch (error) {
+        console.error('Error removing tag:', error);
+        alert('Failed to remove tag');
+    }
+}
+
+// Add tag to image
+async function addTag(tagId) {
+    if (!currentImageId) return;
+
+    try {
+        await fetch(`/image/${currentImageId}/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag_id: tagId })
+        });
+
+        // Reload tags
+        await loadImageTags(currentImageId);
+    } catch (error) {
+        console.error('Error adding tag:', error);
+        alert('Failed to add tag');
+    }
+}
+
+// Create new tag
+async function createTag(tagName) {
+    try {
+        const response = await fetch('/tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: tagName })
+        });
+
+        const data = await response.json();
+
+        // Reload all tags
+        await loadAllTags();
+
+        return data.tag_id;
+    } catch (error) {
+        console.error('Error creating tag:', error);
+        throw error;
+    }
+}
+
+// Setup tag input and autocomplete
+document.addEventListener('DOMContentLoaded', () => {
+    const tagInput = document.getElementById('tagInput');
+    const autocomplete = document.getElementById('tagAutocomplete');
+
+    // Load all tags on page load
+    loadAllTags();
+
+    // Tag input handler
+    tagInput.addEventListener('input', () => {
+        const query = tagInput.value.trim().toLowerCase();
+
+        if (query.length === 0) {
+            autocomplete.classList.remove('show');
+            return;
+        }
+
+        // Filter tags that match query and aren't already added
+        const currentTagIds = new Set(currentImageTags.map(t => t.id));
+        const matches = allTags.filter(tag =>
+            tag.name.toLowerCase().includes(query) &&
+            !currentTagIds.has(tag.id)
+        );
+
+        if (matches.length === 0) {
+            // Show option to create new tag
+            autocomplete.innerHTML = `
+                <div class="tag-autocomplete-item" onclick="createAndAddTag('${query.replace(/'/g, "\\'")}')">
+                    Create new tag: "${query}"
+                </div>
+            `;
+            autocomplete.classList.add('show');
+        } else {
+            // Show matching tags
+            autocomplete.innerHTML = matches.map(tag => `
+                <div class="tag-autocomplete-item" onclick="selectTag(${tag.id})">
+                    ${tag.name} ${tag.count > 0 ? `(${tag.count})` : ''}
+                </div>
+            `).join('');
+            autocomplete.classList.add('show');
+        }
+    });
+
+    // Enter key to create tag
+    tagInput.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tagName = tagInput.value.trim();
+            if (tagName) {
+                await createAndAddTag(tagName);
+            }
+        }
+    });
+
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!tagInput.contains(e.target) && !autocomplete.contains(e.target)) {
+            autocomplete.classList.remove('show');
+        }
+    });
+});
+
+// Select tag from autocomplete
+async function selectTag(tagId) {
+    await addTag(tagId);
+
+    const tagInput = document.getElementById('tagInput');
+    const autocomplete = document.getElementById('tagAutocomplete');
+
+    tagInput.value = '';
+    autocomplete.classList.remove('show');
+}
+
+// Create and add new tag
+async function createAndAddTag(tagName) {
+    try {
+        const tagId = await createTag(tagName);
+        await addTag(tagId);
+
+        const tagInput = document.getElementById('tagInput');
+        const autocomplete = document.getElementById('tagAutocomplete');
+
+        tagInput.value = '';
+        autocomplete.classList.remove('show');
+
+        // Reload tag filter to include the new tag
+        loadTags();
+    } catch (error) {
+        alert('Failed to create tag');
+    }
+}
+
+// ==================== Folder Indexing ====================
+
+let indexingPollInterval = null;
+
+// Open index modal
+function openIndexModal() {
+    document.getElementById('indexModal').classList.add('show');
+    document.getElementById('folderPathInput').value = '';
+    document.getElementById('indexProgress').style.display = 'none';
+}
+
+// Close index modal
+function closeIndexModal() {
+    document.getElementById('indexModal').classList.remove('show');
+    if (indexingPollInterval) {
+        clearInterval(indexingPollInterval);
+        indexingPollInterval = null;
+    }
+}
+
+// Start indexing
+async function startIndexing() {
+    const folderPath = document.getElementById('folderPathInput').value.trim();
+
+    if (!folderPath) {
+        alert('Please enter a folder path');
+        return;
+    }
+
+    try {
+        const response = await fetch('/index/folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder_path: folderPath })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            alert(data.message);
+            return;
+        }
+
+        // Show progress UI
+        document.getElementById('indexProgress').style.display = 'block';
+        document.getElementById('startIndexBtn').disabled = true;
+
+        // Start polling for progress
+        pollIndexProgress();
+        indexingPollInterval = setInterval(pollIndexProgress, 1000);
+
+    } catch (error) {
+        console.error('Error starting indexing:', error);
+        alert('Failed to start indexing');
+    }
+}
+
+// Poll for indexing progress
+async function pollIndexProgress() {
+    try {
+        const response = await fetch('/index/progress');
+        const progress = await response.json();
+
+        // Update UI
+        document.getElementById('indexPhase').textContent = progress.phase || 'Initializing';
+        document.getElementById('indexMessage').textContent = progress.message || '';
+
+        if (progress.total_images > 0) {
+            const percent = (progress.processed_images / progress.total_images) * 100;
+            document.getElementById('indexProgressBar').style.width = percent + '%';
+            document.getElementById('indexStatus').textContent =
+                `${progress.processed_images}/${progress.total_images}`;
+        }
+
+        // Check if complete
+        if (progress.phase === 'complete' || progress.phase === 'error') {
+            clearInterval(indexingPollInterval);
+            indexingPollInterval = null;
+            document.getElementById('startIndexBtn').disabled = false;
+
+            if (progress.phase === 'complete') {
+                document.getElementById('indexProgressBar').style.width = '100%';
+                document.getElementById('indexProgressBar').style.background = 'var(--success)';
+
+                // Reload stats and images
+                setTimeout(() => {
+                    loadStats();
+                    loadImages();
+                    closeIndexModal();
+                }, 2000);
+            } else {
+                document.getElementById('indexProgressBar').style.background = '#ef4444';
+            }
+        }
+
+    } catch (error) {
+        console.error('Error polling progress:', error);
+    }
+}
+
+// Browse for folder
+function browseFolder() {
+    document.getElementById('folderBrowser').click();
+}
+
+// Handle folder selection
+function handleFolderSelection(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+        const firstFile = files[0];
+        let folderPath = '';
+
+        // Try multiple methods to get the full path
+        // Method 1: Direct path property (Electron, some desktop browsers)
+        if (firstFile.path) {
+            const pathParts = firstFile.path.split('/');
+            pathParts.pop(); // Remove filename
+            folderPath = pathParts.join('/');
+        }
+        // Method 2: Use webkitRelativePath and prompt for base path
+        else if (firstFile.webkitRelativePath) {
+            const relativePath = firstFile.webkitRelativePath;
+            const rootFolder = relativePath.split('/')[0];
+
+            // Prompt user to provide the full path
+            const userPath = prompt(
+                `Selected folder: "${rootFolder}"\n\nPlease enter the full path to this folder:`,
+                `/Users/aviz/${rootFolder}`
+            );
+
+            if (userPath) {
+                folderPath = userPath;
+            } else {
+                // User cancelled, just use the folder name
+                folderPath = rootFolder;
+            }
+        }
+        // Method 3: Fallback - ask for manual path
+        else {
+            folderPath = prompt('Please enter the full path to the folder:') || '';
+        }
+
+        document.getElementById('folderPathInput').value = folderPath;
+    }
+}
+
+// Setup indexing button
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('indexFolderBtn').addEventListener('click', openIndexModal);
+    document.getElementById('startIndexBtn').addEventListener('click', startIndexing);
+    document.getElementById('browseFolderBtn').addEventListener('click', browseFolder);
+    document.getElementById('folderBrowser').addEventListener('change', handleFolderSelection);
+});
+
 // Export functions for inline onclick handlers
 window.closeModal = closeModal;
+window.closeDuplicatesModal = closeDuplicatesModal;
+window.openDuplicatesModal = openDuplicatesModal;
+window.closeIndexModal = closeIndexModal;
+window.removeTag = removeTag;
+window.selectTag = selectTag;
+window.createAndAddTag = createAndAddTag;

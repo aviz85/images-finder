@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """FastAPI HTTP server for semantic image search."""
 
-from fastapi import FastAPI, File, UploadFile, Query, HTTPException
+from fastapi import FastAPI, File, UploadFile, Query, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import tempfile
 import os
+import threading
+from datetime import datetime
 
 from src.config import Config
 from src.search import ImageSearchEngine, SearchResult
+from src.pipeline import IndexingPipeline
+from src.faiss_index import FAISSIndex
+from src.embeddings import EmbeddingCache
 
 
 # Initialize FastAPI app
@@ -24,6 +29,19 @@ app = FastAPI(
 # Global search engine (initialized on startup)
 search_engine: Optional[ImageSearchEngine] = None
 config: Optional[Config] = None
+
+# Indexing progress tracker
+indexing_progress = {
+    "is_indexing": False,
+    "current_folder": None,
+    "phase": None,  # "scanning", "processing", "embedding", "building_index", "complete"
+    "total_images": 0,
+    "processed_images": 0,
+    "failed_images": 0,
+    "start_time": None,
+    "message": "Idle"
+}
+indexing_lock = threading.Lock()
 
 
 class SearchResponse(BaseModel):
@@ -378,6 +396,27 @@ class RatingRequest(BaseModel):
     comment: Optional[str] = None
 
 
+class TagRequest(BaseModel):
+    """Request model for creating a tag."""
+    name: str
+
+
+class AddTagRequest(BaseModel):
+    """Request model for adding a tag to an image."""
+    tag_id: int
+
+
+class BulkTagRequest(BaseModel):
+    """Request model for bulk tagging."""
+    image_ids: List[int]
+    tag_ids: List[int]
+
+
+class IndexFolderRequest(BaseModel):
+    """Request model for indexing a folder."""
+    folder_path: str
+
+
 def extract_folder_tags(file_path: str, root_path: str = "data/sources") -> List[str]:
     """
     Extract folder names from file path, excluding the root path.
@@ -411,7 +450,8 @@ async def browse_images(
     min_rating: Optional[int] = Query(None, ge=1, le=5),
     max_rating: Optional[int] = Query(None, ge=1, le=5),
     sort_by: str = Query("created_at", regex="^(created_at|rating|file_name|file_size|width|height)$"),
-    sort_order: str = Query("DESC", regex="^(ASC|DESC)$")
+    sort_order: str = Query("DESC", regex="^(ASC|DESC)$"),
+    tag_ids: Optional[str] = Query(None, description="Comma-separated tag IDs to filter by")
 ):
     """Browse images with pagination and filtering. Always shows unique images only."""
     global search_engine
@@ -422,6 +462,14 @@ async def browse_images(
     # Calculate offset
     offset = (page - 1) * per_page
 
+    # Parse tag_ids if provided
+    tag_id_list = None
+    if tag_ids:
+        try:
+            tag_id_list = [int(tid) for tid in tag_ids.split(',') if tid.strip()]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid tag_ids format")
+
     # Get images (always unique only)
     images = search_engine.db.get_images_with_ratings(
         limit=per_page,
@@ -430,7 +478,8 @@ async def browse_images(
         max_rating=max_rating,
         sort_by=sort_by,
         sort_order=sort_order,
-        unique_only=True  # Always filter duplicates
+        unique_only=True,  # Always filter duplicates
+        tag_ids=tag_id_list
     )
 
     cursor = search_engine.db.conn.cursor()
@@ -447,13 +496,27 @@ async def browse_images(
         """, (img['id'],))
         img['duplicate_count'] = cursor.fetchone()['count']
 
-    # Get total count (unique images only)
-    cursor.execute("""
-        SELECT COUNT(*) as count
-        FROM images
-        WHERE embedding_index IS NOT NULL
-        AND (is_duplicate IS NULL OR is_duplicate = 0)
-    """)
+    # Get total count (unique images only, with tag filter if applicable)
+    if tag_id_list:
+        # Count with tag filter
+        placeholders = ','.join('?' * len(tag_id_list))
+        count_query = f"""
+            SELECT COUNT(DISTINCT i.id) as count
+            FROM images i
+            INNER JOIN image_tags it ON i.id = it.image_id
+            WHERE i.embedding_index IS NOT NULL
+            AND (i.is_duplicate IS NULL OR i.is_duplicate = 0)
+            AND it.tag_id IN ({placeholders})
+        """
+        cursor.execute(count_query, tag_id_list)
+    else:
+        # Count without tag filter
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM images
+            WHERE embedding_index IS NOT NULL
+            AND (is_duplicate IS NULL OR is_duplicate = 0)
+        """)
     total = cursor.fetchone()['count']
 
     total_pages = (total + per_page - 1) // per_page
@@ -677,6 +740,222 @@ async def get_rating_stats():
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
     return search_engine.db.get_rating_statistics()
+
+
+# ==================== Tag Endpoints ====================
+
+@app.get("/tags")
+async def get_all_tags():
+    """Get all tags with usage counts."""
+    global search_engine
+
+    if search_engine is None:
+        raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+    try:
+        tags = search_engine.db.get_all_tags()
+        return {"tags": tags}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/tags")
+async def create_tag(tag_data: TagRequest):
+    """Create a new tag."""
+    global search_engine
+
+    if search_engine is None:
+        raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+    try:
+        tag_id = search_engine.db.create_tag(tag_data.name)
+        return {"success": True, "tag_id": tag_id, "name": tag_data.name.strip()}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/image/{image_id}/tags")
+async def get_image_tags(image_id: int):
+    """Get all tags for an image."""
+    global search_engine
+
+    if search_engine is None:
+        raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+    try:
+        tags = search_engine.db.get_tags_for_image(image_id)
+        return {"tags": tags}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/image/{image_id}/tags")
+async def add_tag_to_image(image_id: int, tag_data: AddTagRequest):
+    """Add a tag to an image."""
+    global search_engine
+
+    if search_engine is None:
+        raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+    try:
+        added = search_engine.db.add_tag_to_image(image_id, tag_data.tag_id)
+        return {"success": True, "added": added}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/image/{image_id}/tags/{tag_id}")
+async def remove_tag_from_image(image_id: int, tag_id: int):
+    """Remove a tag from an image."""
+    global search_engine
+
+    if search_engine is None:
+        raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+    try:
+        removed = search_engine.db.remove_tag_from_image(image_id, tag_id)
+        return {"success": True, "removed": removed}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/tags/bulk")
+async def bulk_add_tags(bulk_data: BulkTagRequest):
+    """Add multiple tags to multiple images (bulk operation)."""
+    global search_engine
+
+    if search_engine is None:
+        raise HTTPException(status_code=503, detail="Search engine not initialized")
+
+    try:
+        added_count = search_engine.db.bulk_add_tags(bulk_data.image_ids, bulk_data.tag_ids)
+        return {"success": True, "added_count": added_count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Indexing Endpoints ====================
+
+def run_indexing(folder_path: str):
+    """Background task to run indexing."""
+    global indexing_progress, search_engine, config
+
+    with indexing_lock:
+        if indexing_progress["is_indexing"]:
+            return
+
+        indexing_progress["is_indexing"] = True
+        indexing_progress["current_folder"] = folder_path
+        indexing_progress["start_time"] = datetime.now().isoformat()
+        indexing_progress["total_images"] = 0
+        indexing_progress["processed_images"] = 0
+        indexing_progress["failed_images"] = 0
+
+    try:
+        # Create pipeline
+        pipeline = IndexingPipeline(config)
+
+        # Phase 1: Scan and register
+        indexing_progress["phase"] = "scanning"
+        indexing_progress["message"] = f"Scanning folder: {folder_path}"
+        num_registered = pipeline.scan_and_register_images(Path(folder_path))
+        indexing_progress["total_images"] = num_registered
+
+        if num_registered == 0:
+            indexing_progress["message"] = "No new images found"
+            indexing_progress["phase"] = "complete"
+            return
+
+        # Phase 2: Process embeddings
+        indexing_progress["phase"] = "embedding"
+        indexing_progress["message"] = f"Generating embeddings for {num_registered} images"
+        pipeline.initialize_model()
+        pipeline.generate_embeddings(resume=True)
+
+        # Phase 3: Build index
+        indexing_progress["phase"] = "building_index"
+        indexing_progress["message"] = "Rebuilding search index"
+
+        # Load embeddings
+        embedding_cache = EmbeddingCache(config.embeddings_path)
+        embeddings = embedding_cache.load()
+
+        # Build index
+        faiss_index = FAISSIndex(config.embedding_dim, config.index_path)
+        if len(embeddings) < 100:
+            faiss_index.build_flat_index(embeddings, use_gpu=config.device == "cuda")
+        else:
+            faiss_index.build_ivf_pq_index(
+                embeddings,
+                nlist=config.nlist,
+                m=config.m_pq,
+                nbits=config.nbits_pq,
+                use_gpu=config.device == "cuda"
+            )
+        faiss_index.save()
+
+        # Phase 4: Detect duplicates
+        indexing_progress["phase"] = "duplicates"
+        indexing_progress["message"] = "Detecting duplicates"
+        num_duplicates = pipeline.db.mark_duplicates(
+            hash_threshold=config.duplicate_hash_threshold
+        )
+
+        # Complete
+        indexing_progress["phase"] = "complete"
+        indexing_progress["message"] = f"Indexed {num_registered} images ({num_duplicates} duplicates found)"
+
+        # Reload search engine
+        if search_engine:
+            search_engine.initialize()
+
+    except Exception as e:
+        indexing_progress["phase"] = "error"
+        indexing_progress["message"] = f"Error: {str(e)}"
+    finally:
+        with indexing_lock:
+            indexing_progress["is_indexing"] = False
+
+
+@app.post("/index/folder")
+async def index_folder(request: IndexFolderRequest, background_tasks: BackgroundTasks):
+    """Start indexing a folder in the background."""
+    global config
+
+    folder_path = Path(request.folder_path)
+
+    # Validate folder exists
+    if not folder_path.exists():
+        raise HTTPException(status_code=400, detail=f"Folder not found: {folder_path}")
+
+    if not folder_path.is_dir():
+        raise HTTPException(status_code=400, detail=f"Path is not a directory: {folder_path}")
+
+    # Check if already indexing
+    with indexing_lock:
+        if indexing_progress["is_indexing"]:
+            return {
+                "success": False,
+                "message": "Indexing already in progress",
+                "current_folder": indexing_progress["current_folder"]
+            }
+
+    # Start background task
+    background_tasks.add_task(run_indexing, str(folder_path))
+
+    return {
+        "success": True,
+        "message": f"Started indexing: {folder_path}",
+        "folder": str(folder_path)
+    }
+
+
+@app.get("/index/progress")
+async def get_index_progress():
+    """Get current indexing progress."""
+    return indexing_progress
 
 
 @app.get("/ui", response_class=HTMLResponse)

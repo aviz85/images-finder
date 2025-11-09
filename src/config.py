@@ -44,6 +44,13 @@ class Config(BaseModel):
     num_workers: int = Field(default=4, description="Number of worker threads")
     checkpoint_interval: int = Field(default=1000, description="Save progress every N images")
 
+    # Duplicate detection
+    duplicate_hash_threshold: int = Field(
+        default=5,
+        description="Hamming distance threshold for duplicate detection (0-64). "
+                    "Lower = stricter. 5 ≈ 92% similar, 10 ≈ 84% similar"
+    )
+
     class Config:
         arbitrary_types_allowed = True
 
