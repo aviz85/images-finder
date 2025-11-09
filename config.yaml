@@ -1,0 +1,40 @@
+# Example configuration for Local Semantic Image Search
+# Copy this file to config.yaml and customize for your needs
+
+# Paths
+data_dir: data
+db_path: data/metadata.db
+index_path: data/faiss.index
+embeddings_path: data/embeddings.npy
+thumbnails_dir: data/thumbnails
+
+# Model settings
+model_name: "ViT-B-32"  # OpenAI CLIP model (widely available)
+pretrained: "openai"
+device: "cpu"  # Use "cuda" if GPU available
+batch_size: 32  # Reduce if out of memory, increase for faster processing
+
+# Image processing
+thumbnail_size: [224, 224]
+image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+  - .webp
+  - .bmp
+  - .gif
+
+# FAISS index settings
+embedding_dim: 512  # ViT-B-32 dimension
+nlist: 16  # Number of IVF clusters (adjusted for 360 images)
+m_pq: 64  # PQ sub-vectors
+nbits_pq: 8  # Bits per PQ code
+nprobe: 32  # Clusters to search (higher = more accurate but slower)
+
+# Search settings
+top_k_ivf: 1000  # Candidates from IVF-PQ
+top_k_refined: 100  # Final results after re-ranking
+
+# Processing
+num_workers: 4  # Number of worker threads
+checkpoint_interval: 1000  # Save progress every N images
