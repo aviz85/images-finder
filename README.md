@@ -11,6 +11,7 @@ A fully local, privacy-preserving semantic image search engine for up to 4 milli
 - **Resumable**: Batch processing with checkpoints for interruption recovery
 - **Dual Interface**: CLI and HTTP API (FastAPI)
 - **Privacy-First**: All data stays on your machine
+- **Duplicate Detection**: Perceptual-hash matching surfaces near-identical images for cleanup
 
 ## Architecture
 
@@ -73,6 +74,18 @@ python cli.py search-text "a cat sitting on a couch"
 ```bash
 python cli.py search-image /path/to/query/image.jpg
 ```
+
+### 3. Handle Duplicates
+
+Duplicate detection runs automatically as part of the pipeline. The system hashes every image, marks near-identical files, and ensures browse/search views only surface the canonical copy while still letting you review duplicates.
+
+- In the web explorer, click the red duplicate badge on any card to inspect the alternate files and jump to them in Finder/Explorer.
+- Tune sensitivity by changing `duplicate_hash_threshold` in `config.yaml` (lower = stricter match, higher = looser).
+- To re-run detection after tweaking the threshold without rebuilding embeddings or the index:
+  ```bash
+  source venv/bin/activate
+  python redetect_duplicates.py
+  ```
 
 ## CLI Usage
 

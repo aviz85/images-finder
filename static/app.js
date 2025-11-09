@@ -318,13 +318,14 @@ function createImageCard(image) {
 
     const rating = image.rating || 0;
 
-    // Handle both 'id' (from browse) and 'image_id' (from search)
     const imageId = image.id || image.image_id;
 
-    // Create folder chips HTML
-    const folders = image.folders || [];
-    const folderChipsHtml = folders.length > 0
-        ? `<div class="folder-tags">${folders.map(f => `<span class="folder-chip" title="${f}">${f}</span>`).join('')}</div>`
+    const folderNames = Array.isArray(image.folders) && image.folders.length > 0
+        ? image.folders
+        : deriveFolderTags(image.file_path);
+
+    const folderChipsHtml = folderNames.length > 0
+        ? `<div class="folder-tags">${folderNames.map(f => `<span class="folder-chip" title="${f}">${f}</span>`).join('')}</div>`
         : '';
 
     // Create duplicate badge HTML
@@ -362,6 +363,40 @@ function createStarDisplay(rating) {
         html += `<span class="star ${filled}" data-rating="${i}">★</span>`;
     }
     return html;
+}
+
+function deriveFolderTags(filePath, maxDepth = 3) {
+    if (!filePath) {
+        return [];
+    }
+
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const segments = normalizedPath.split('/').map(segment => segment.trim()).filter(Boolean);
+
+    if (segments.length <= 1) {
+        return [];
+    }
+
+    const skipSegments = new Set(['data', 'sources', 'thumbnails']);
+
+    const filtered = segments
+        .slice(0, -1)
+        .filter(segment => {
+            const lower = segment.toLowerCase();
+            if (skipSegments.has(lower)) {
+                return false;
+            }
+            if (/^[a-z]:$/i.test(segment)) {
+                return false;
+            }
+            return true;
+        });
+
+    if (filtered.length > maxDepth) {
+        return filtered.slice(-maxDepth);
+    }
+
+    return filtered;
 }
 
 function initializeRatingControl(container, imageId, initialRating) {

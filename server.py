@@ -417,30 +417,37 @@ class IndexFolderRequest(BaseModel):
     folder_path: str
 
 
-def extract_folder_tags(file_path: str, root_path: str = "data/sources") -> List[str]:
+def extract_folder_tags(file_path: str, max_depth: int = 3) -> List[str]:
     """
-    Extract folder names from file path, excluding the root path.
+    Extract folder names from an image path for display as tags.
 
     Args:
         file_path: Full path to the image file
-        root_path: Root directory to exclude from tags
+        max_depth: Maximum number of folder segments to return
 
     Returns:
-        List of folder names (excluding root and filename)
+        Ordered list of folder names (excluding filename)
     """
     path = Path(file_path)
-    root = Path(root_path)
+    skip_parts = {os.sep, '', '.'}
 
-    try:
-        # Get relative path from root
-        relative = path.relative_to(root)
-        # Get all parent directories (exclude filename)
-        folders = list(relative.parent.parts)
-        # Filter out empty strings and '.'
-        return [f for f in folders if f and f != '.']
-    except ValueError:
-        # Path is not relative to root, return empty list
-        return []
+    if config:
+        skip_parts.add(str(config.data_dir.name))
+        skip_parts.add('sources')
+
+    parts: List[str] = []
+    for part in path.parent.parts:
+        if part.endswith(":"):
+            # Skip Windows drive letters (e.g., 'C:')
+            continue
+        if part in skip_parts:
+            continue
+        parts.append(part)
+
+    if len(parts) > max_depth:
+        parts = parts[-max_depth:]
+
+    return parts
 
 
 @app.get("/browse", response_model=BrowseResponse)
