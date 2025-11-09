@@ -2,6 +2,7 @@
 let currentPage = 1;
 let currentImageId = null;
 let searchTimeout = null;
+let folderSearchTimeout = null;
 let searchMode = 'browse';  // 'browse', 'text', or 'image'
 let searchQuery = null;     // text string or image_id
 
@@ -15,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Search
+    // Semantic Search
     document.getElementById('searchBox').addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
@@ -24,6 +25,15 @@ function setupEventListeners() {
             } else {
                 loadImages();
             }
+        }, 500);
+    });
+
+    // Folder Search
+    document.getElementById('folderSearchBox').addEventListener('input', (e) => {
+        clearTimeout(folderSearchTimeout);
+        folderSearchTimeout = setTimeout(() => {
+            currentPage = 1;
+            loadImages();
         }, 500);
     });
 
@@ -155,6 +165,13 @@ async function loadImages() {
             .filter(value => value !== ''); // Filter out empty "All tags" option
         if (selectedTags.length > 0) {
             params.append('tag_ids', selectedTags.join(','));
+        }
+
+        // Get folder search query
+        const folderSearchBox = document.getElementById('folderSearchBox');
+        const folderSearch = folderSearchBox.value.trim();
+        if (folderSearch) {
+            params.append('folder_path', folderSearch);
         }
 
         const response = await fetch(`/browse?${params}`);
@@ -300,7 +317,6 @@ function createImageCard(image) {
     card.onclick = () => openImageModal(image);
 
     const rating = image.rating || 0;
-    const stars = createStarDisplay(rating);
 
     // Handle both 'id' (from browse) and 'image_id' (from search)
     const imageId = image.id || image.image_id;
@@ -326,11 +342,14 @@ function createImageCard(image) {
             <div class="image-name" title="${image.file_name}">${image.file_name}</div>
             <div class="image-meta">
                 <span>${image.width} × ${image.height}</span>
-                <div class="rating-display">${stars}</div>
+                <div class="rating-display">${createStarDisplay(rating)}</div>
             </div>
             ${folderChipsHtml}
         </div>
     `;
+
+    const ratingDisplay = card.querySelector('.rating-display');
+    initializeRatingControl(ratingDisplay, imageId, rating);
 
     return card;
 }
@@ -340,9 +359,85 @@ function createStarDisplay(rating) {
     let html = '';
     for (let i = 1; i <= 5; i++) {
         const filled = i <= rating ? 'filled' : '';
-        html += `<span class="star ${filled}">★</span>`;
+        html += `<span class="star ${filled}" data-rating="${i}">★</span>`;
     }
     return html;
+}
+
+function initializeRatingControl(container, imageId, initialRating) {
+    container.dataset.imageId = imageId;
+    container.dataset.currentRating = initialRating || 0;
+    container.dataset.updating = 'false';
+
+    const stars = container.querySelectorAll('.star');
+    stars.forEach(star => {
+        const starValue = parseInt(star.dataset.rating, 10);
+
+        star.addEventListener('click', (event) => {
+            event.stopPropagation();
+            submitInlineRating(container, imageId, starValue);
+        });
+
+        star.addEventListener('mouseenter', () => {
+            updateInlineStarState(container, starValue);
+        });
+
+        star.addEventListener('mouseleave', () => {
+            restoreInlineRating(container);
+        });
+    });
+
+    container.addEventListener('mouseleave', () => {
+        restoreInlineRating(container);
+    });
+}
+
+function updateInlineStarState(container, rating) {
+    const stars = container.querySelectorAll('.star');
+    stars.forEach(star => {
+        const starValue = parseInt(star.dataset.rating, 10);
+        if (starValue <= rating) {
+            star.classList.add('filled');
+        } else {
+            star.classList.remove('filled');
+        }
+    });
+}
+
+function restoreInlineRating(container) {
+    const current = parseInt(container.dataset.currentRating, 10) || 0;
+    updateInlineStarState(container, current);
+}
+
+async function submitInlineRating(container, imageId, rating) {
+    if (container.dataset.updating === 'true') {
+        return;
+    }
+
+    container.dataset.updating = 'true';
+    updateInlineStarState(container, rating);
+
+    try {
+        const response = await fetch(`/rating/${imageId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating, comment: null })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Rating request failed with status ${response.status}`);
+        }
+
+        container.dataset.currentRating = rating;
+        showToast('Rating updated');
+        loadStats();
+    } catch (error) {
+        console.error('Error updating rating:', error);
+        showToast('Failed to update rating', 'error');
+        restoreInlineRating(container);
+    } finally {
+        container.dataset.updating = 'false';
+    }
 }
 
 // Display pagination

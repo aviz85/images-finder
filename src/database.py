@@ -358,8 +358,9 @@ class ImageDatabase:
                                 sort_by: str = 'created_at',
                                 sort_order: str = 'DESC',
                                 unique_only: bool = False,
-                                tag_ids: Optional[List[int]] = None) -> List[Dict[str, Any]]:
-        """Get images with their ratings, optionally filtered by tags."""
+                                tag_ids: Optional[List[int]] = None,
+                                folder_path: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get images with their ratings, optionally filtered by tags and folder path."""
         cursor = self.conn.cursor()
 
         # If filtering by tags, we need to join with image_tags
@@ -384,6 +385,10 @@ class ImageDatabase:
 
         if unique_only:
             query += " AND (i.is_duplicate IS NULL OR i.is_duplicate = 0)"
+
+        if folder_path:
+            query += " AND i.file_path LIKE ?"
+            params.append(f"%{folder_path}%")
 
         if min_rating is not None:
             query += " AND r.rating >= ?"

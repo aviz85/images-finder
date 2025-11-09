@@ -451,7 +451,8 @@ async def browse_images(
     max_rating: Optional[int] = Query(None, ge=1, le=5),
     sort_by: str = Query("created_at", regex="^(created_at|rating|file_name|file_size|width|height)$"),
     sort_order: str = Query("DESC", regex="^(ASC|DESC)$"),
-    tag_ids: Optional[str] = Query(None, description="Comma-separated tag IDs to filter by")
+    tag_ids: Optional[str] = Query(None, description="Comma-separated tag IDs to filter by"),
+    folder_path: Optional[str] = Query(None, description="Filter by folder path (substring match)")
 ):
     """Browse images with pagination and filtering. Always shows unique images only."""
     global search_engine
@@ -479,7 +480,8 @@ async def browse_images(
         sort_by=sort_by,
         sort_order=sort_order,
         unique_only=True,  # Always filter duplicates
-        tag_ids=tag_id_list
+        tag_ids=tag_id_list,
+        folder_path=folder_path
     )
 
     cursor = search_engine.db.conn.cursor()
@@ -496,7 +498,8 @@ async def browse_images(
         """, (img['id'],))
         img['duplicate_count'] = cursor.fetchone()['count']
 
-    # Get total count (unique images only, with tag filter if applicable)
+    # Get total count (unique images only, with tag and folder filter if applicable)
+    count_params = []
     if tag_id_list:
         # Count with tag filter
         placeholders = ','.join('?' * len(tag_id_list))
@@ -508,15 +511,23 @@ async def browse_images(
             AND (i.is_duplicate IS NULL OR i.is_duplicate = 0)
             AND it.tag_id IN ({placeholders})
         """
-        cursor.execute(count_query, tag_id_list)
+        count_params.extend(tag_id_list)
+        if folder_path:
+            count_query += " AND i.file_path LIKE ?"
+            count_params.append(f"%{folder_path}%")
+        cursor.execute(count_query, count_params)
     else:
         # Count without tag filter
-        cursor.execute("""
+        count_query = """
             SELECT COUNT(*) as count
             FROM images
             WHERE embedding_index IS NOT NULL
             AND (is_duplicate IS NULL OR is_duplicate = 0)
-        """)
+        """
+        if folder_path:
+            count_query += " AND file_path LIKE ?"
+            count_params.append(f"%{folder_path}%")
+        cursor.execute(count_query, count_params)
     total = cursor.fetchone()['count']
 
     total_pages = (total + per_page - 1) // per_page
