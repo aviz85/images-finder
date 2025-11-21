@@ -119,7 +119,7 @@ class ImageProcessor:
     def compute_perceptual_hash(self, file_path: Path) -> Optional[str]:
         """
         Compute perceptual hash for duplicate detection.
-        Uses average hash which is good for detecting similar/resized images.
+        Uses phash which is precise for detecting visual duplicates.
 
         Args:
             file_path: Path to image
@@ -129,12 +129,34 @@ class ImageProcessor:
         """
         try:
             with Image.open(file_path) as img:
-                # Use average hash - good balance of speed and accuracy
-                # Can detect duplicates even if resized or slightly modified
-                ahash = imagehash.average_hash(img)
-                return str(ahash)
+                # Use perceptual hash (phash) - better precision for true duplicates
+                # Detects images with identical visual content across formats/compressions
+                phash = imagehash.phash(img, hash_size=8)
+                return str(phash)
         except Exception as e:
-            print(f"Failed to compute hash for {file_path}: {e}")
+            print(f"Failed to compute perceptual hash for {file_path}: {e}")
+            return None
+
+    def compute_sha256_hash(self, file_path: Path) -> Optional[str]:
+        """
+        Compute SHA-256 hash of file for exact duplicate detection.
+        Finds byte-for-byte identical files.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            Hex string representation of SHA-256 hash or None if failed
+        """
+        try:
+            sha256 = hashlib.sha256()
+            with open(file_path, 'rb') as f:
+                # Read file in chunks for memory efficiency
+                for chunk in iter(lambda: f.read(8192), b''):
+                    sha256.update(chunk)
+            return sha256.hexdigest()
+        except Exception as e:
+            print(f"Failed to compute SHA-256 for {file_path}: {e}")
             return None
 
     def create_centered_thumbnail(self, file_path: Path, quality: int = 85) -> Optional[Path]:

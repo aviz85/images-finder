@@ -4,11 +4,26 @@ from pathlib import Path
 from typing import Optional, List
 from tqdm import tqdm
 import numpy as np
+import logging
+import time
+from datetime import timedelta
 
 from .config import Config
 from .database import ImageDatabase
-from .image_processor import ImageProcessor, scan_images
+from .image_processor import ImageProcessor
+from .smart_scanner import scan_images_smart
 from .embeddings import EmbeddingModel, EmbeddingCache
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('processing.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 class IndexingPipeline:
@@ -49,18 +64,28 @@ class IndexingPipeline:
         Returns:
             Number of images registered
         """
-        print(f"Scanning for images in {image_dir}...")
-        image_files = scan_images(image_dir, self.config.image_extensions)
-        print(f"Found {len(image_files)} images")
+        logger.info(f"Scanning for images in {image_dir}...")
+        start_time = time.time()
+
+        # Use smart scanner with caching and database integration
+        image_files = scan_images_smart(
+            root_dir=image_dir,
+            extensions=self.config.image_extensions,
+            db_connection=self.db.conn
+        )
+        logger.info(f"Found {len(image_files)} images to process")
 
         registered = 0
         failed = 0
+        skipped = 0
+        start_processing = time.time()
 
-        for file_path in tqdm(image_files, desc="Registering images"):
+        for idx, file_path in enumerate(tqdm(image_files, desc="Registering images", unit="img")):
             try:
-                # Check if already registered
+                # Double-check if already registered (smart scanner should filter these out)
                 existing = self.db.get_image_by_path(str(file_path))
                 if existing:
+                    skipped += 1
                     continue
 
                 # Get image info
@@ -70,11 +95,15 @@ class IndexingPipeline:
                     failed += 1
                     continue
 
-                # Generate thumbnail
-                thumbnail_path = self.image_processor.generate_thumbnail(file_path)
+                # Generate thumbnail - DISABLED for performance (filesystem issues on external drive)
+                # thumbnail_path = self.image_processor.generate_thumbnail(file_path)
+                thumbnail_path = None  # Skip thumbnails for speed
 
-                # Compute perceptual hash for duplicate detection
+                # Compute perceptual hash for visual duplicate detection
                 perceptual_hash = self.image_processor.compute_perceptual_hash(file_path)
+                
+                # Compute SHA-256 hash for exact file duplicate detection
+                sha256_hash = self.image_processor.compute_sha256_hash(file_path)
 
                 # Add to database
                 self.db.add_image(
@@ -85,15 +114,28 @@ class IndexingPipeline:
                     height=info['height'],
                     format=info['format'],
                     thumbnail_path=str(thumbnail_path) if thumbnail_path else None,
-                    perceptual_hash=perceptual_hash
+                    perceptual_hash=perceptual_hash,
+                    sha256_hash=sha256_hash
                 )
                 registered += 1
 
+                # Log progress every 10000 images
+                if (idx + 1) % 10000 == 0:
+                    elapsed = time.time() - start_processing
+                    rate = (idx + 1) / elapsed
+                    remaining = len(image_files) - (idx + 1)
+                    eta_seconds = remaining / rate if rate > 0 else 0
+                    eta = timedelta(seconds=int(eta_seconds))
+                    logger.info(f"Progress: {idx+1}/{len(image_files)} | Rate: {rate:.1f} img/s | ETA: {eta}")
+
             except Exception as e:
+                logger.error(f"Error processing {file_path}: {e}")
                 self.db.add_failed_image(str(file_path), str(e))
                 failed += 1
 
-        print(f"Registered {registered} new images, {failed} failed")
+        total_time = time.time() - start_time
+        logger.info(f"Registration complete in {timedelta(seconds=int(total_time))}")
+        logger.info(f"Registered: {registered} new images | Skipped: {skipped} | Failed: {failed}")
         return registered
 
     def generate_embeddings(self, resume: bool = True) -> int:
@@ -106,6 +148,7 @@ class IndexingPipeline:
         Returns:
             Number of embeddings generated
         """
+        logger.info("Initializing embedding model...")
         self.initialize_model()
 
         job_name = "embedding_generation"
@@ -116,18 +159,20 @@ class IndexingPipeline:
             # Start fresh
             unprocessed = self.db.get_unprocessed_images()
             start_idx = 0
+            logger.info("Starting fresh embedding generation")
         else:
             # Resume from checkpoint
             unprocessed = self.db.get_unprocessed_images()
             start_idx = status.get('processed_files', 0)
-            print(f"Resuming from {start_idx} processed images")
+            logger.info(f"Resuming from checkpoint: {start_idx} images already processed")
 
         if not unprocessed:
-            print("No unprocessed images found")
+            logger.info("No unprocessed images found")
             return 0
 
         total = len(unprocessed)
-        print(f"Processing {total} images in batches of {self.config.batch_size}")
+        logger.info(f"Processing {total} images in batches of {self.config.batch_size}")
+        logger.info(f"Device: {self.config.device} | Model: {self.config.model_name}")
 
         # Update status
         self.db.update_processing_status(
@@ -139,6 +184,7 @@ class IndexingPipeline:
         all_embeddings = []
         processed = 0
         failed = 0
+        start_time = time.time()
 
         # Get next embedding index
         next_embedding_idx = self.db.get_processed_count()
@@ -147,7 +193,7 @@ class IndexingPipeline:
         batch_images = []
         batch_records = []
 
-        for i, record in enumerate(tqdm(unprocessed, desc="Generating embeddings")):
+        for i, record in enumerate(tqdm(unprocessed, desc="Generating embeddings", unit="img")):
             try:
                 # Load image
                 img_path = Path(record['file_path'])
@@ -192,6 +238,14 @@ class IndexingPipeline:
 
                     # Checkpoint
                     if processed % self.config.checkpoint_interval == 0:
+                        elapsed = time.time() - start_time
+                        rate = processed / elapsed
+                        remaining = total - processed
+                        eta_seconds = remaining / rate if rate > 0 else 0
+                        eta = timedelta(seconds=int(eta_seconds))
+
+                        logger.info(f"Checkpoint: {processed}/{total} | Rate: {rate:.1f} img/s | ETA: {eta} | Failed: {failed}")
+
                         self.db.update_processing_status(
                             job_name=job_name,
                             total_files=total,
@@ -200,24 +254,36 @@ class IndexingPipeline:
                             last_checkpoint=str(i)
                         )
 
+                    # Log progress every 5000 images
+                    if processed % 5000 == 0 and processed % self.config.checkpoint_interval != 0:
+                        elapsed = time.time() - start_time
+                        rate = processed / elapsed
+                        remaining = total - processed
+                        eta_seconds = remaining / rate if rate > 0 else 0
+                        eta = timedelta(seconds=int(eta_seconds))
+                        logger.info(f"Progress: {processed}/{total} | Rate: {rate:.1f} img/s | ETA: {eta}")
+
             except Exception as e:
-                print(f"Error processing {record['file_path']}: {e}")
+                logger.error(f"Error processing {record['file_path']}: {e}")
                 self.db.add_failed_image(record['file_path'], str(e))
                 failed += 1
 
         # Combine all embeddings
         if all_embeddings:
+            logger.info("Combining and saving embeddings...")
             final_embeddings = np.vstack(all_embeddings)
 
             # Load existing embeddings if they exist
             try:
                 existing_embeddings = self.embedding_cache.load()
+                logger.info(f"Merging with {len(existing_embeddings)} existing embeddings")
                 final_embeddings = np.vstack([existing_embeddings, final_embeddings])
             except FileNotFoundError:
-                pass
+                logger.info("No existing embeddings found, saving fresh")
 
             # Save combined embeddings
             self.embedding_cache.save(final_embeddings)
+            logger.info(f"Saved {len(final_embeddings)} total embeddings")
 
         # Mark job as completed
         self.db.update_processing_status(
@@ -228,7 +294,12 @@ class IndexingPipeline:
             completed=True
         )
 
-        print(f"Generated {processed} embeddings, {failed} failed")
+        total_time = time.time() - start_time
+        logger.info(f"Embedding generation complete in {timedelta(seconds=int(total_time))}")
+        logger.info(f"Generated: {processed} embeddings | Failed: {failed}")
+        if processed > 0:
+            logger.info(f"Average rate: {processed/total_time:.1f} img/s")
+
         return processed
 
     def get_stats(self) -> dict:

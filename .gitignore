@@ -29,6 +29,7 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # Temporary files
 *.tmp
@@ -39,3 +40,31 @@ Thumbs.db
 .coverage*
 htmlcov/
 TEST_REPORT.md
+
+# Processing and runtime files
+benchmark_runs/
+processing_summary.txt
+parallel_master.log
+parallel_startup.log
+pipeline_master.log
+overnight_output.log
+dashboard.log
+status_server.log
+embedding_benchmark.log
+hash_computation.log
+hash_update.log
+indexing.log
+
+# Status and report files
+*_STATUS*.md
+*_STATUS*.txt
+*_REPORT*.md
+*_INSTRUCTIONS*.md
+*_GUIDE*.md
+*_SUMMARY*.md
+CURRENT_STATUS.txt
+DUPLICATE_GROUPS.txt
+count_*.txt
+
+# Scan cache
+.images-finder/

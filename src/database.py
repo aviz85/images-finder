@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
+import time
 
 
 class ImageDatabase:
@@ -19,6 +20,8 @@ class ImageDatabase:
         """Initialize database schema."""
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        # Set timeout for better concurrency handling (30 seconds)
+        self.conn.execute("PRAGMA busy_timeout = 30000")
 
         cursor = self.conn.cursor()
 
@@ -35,6 +38,7 @@ class ImageDatabase:
                 thumbnail_path TEXT,
                 embedding_index INTEGER,
                 perceptual_hash TEXT,
+                sha256_hash TEXT,
                 is_duplicate BOOLEAN DEFAULT 0,
                 duplicate_of INTEGER,
                 processed_at TIMESTAMP,
@@ -47,6 +51,11 @@ class ImageDatabase:
         # Migrate existing tables to add new columns
         try:
             cursor.execute("ALTER TABLE images ADD COLUMN perceptual_hash TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        try:
+            cursor.execute("ALTER TABLE images ADD COLUMN sha256_hash TEXT")
         except sqlite3.OperationalError:
             pass  # Column already exists
 
@@ -72,6 +81,9 @@ class ImageDatabase:
         """)
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_perceptual_hash ON images(perceptual_hash)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_sha256_hash ON images(sha256_hash)
         """)
 
         # Processing status table for resumable jobs
@@ -154,11 +166,24 @@ class ImageDatabase:
 
         self.conn.commit()
 
+    def _commit_with_retry(self, max_retries=5, delay=0.5):
+        """Commit with retry logic for database locks."""
+        for attempt in range(max_retries):
+            try:
+                self.conn.commit()
+                return
+            except sqlite3.OperationalError as e:
+                if "locked" in str(e) and attempt < max_retries - 1:
+                    time.sleep(delay * (attempt + 1))  # Exponential backoff
+                    continue
+                raise
+
     def add_image(self, file_path: str, file_name: str, file_size: int,
                   width: int, height: int, format: str,
                   thumbnail_path: Optional[str] = None,
                   embedding_index: Optional[int] = None,
-                  perceptual_hash: Optional[str] = None) -> int:
+                  perceptual_hash: Optional[str] = None,
+                  sha256_hash: Optional[str] = None) -> int:
         """Add or update an image record."""
         cursor = self.conn.cursor()
         now = datetime.utcnow().isoformat()
@@ -166,8 +191,8 @@ class ImageDatabase:
         cursor.execute("""
             INSERT INTO images (
                 file_path, file_name, file_size, width, height, format,
-                thumbnail_path, embedding_index, perceptual_hash, processed_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                thumbnail_path, embedding_index, perceptual_hash, sha256_hash, processed_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(file_path) DO UPDATE SET
                 file_size=excluded.file_size,
                 width=excluded.width,
@@ -176,12 +201,13 @@ class ImageDatabase:
                 thumbnail_path=excluded.thumbnail_path,
                 embedding_index=excluded.embedding_index,
                 perceptual_hash=excluded.perceptual_hash,
+                sha256_hash=excluded.sha256_hash,
                 processed_at=excluded.processed_at,
                 updated_at=excluded.updated_at
         """, (file_path, file_name, file_size, width, height, format,
-              thumbnail_path, embedding_index, perceptual_hash, now, now))
+              thumbnail_path, embedding_index, perceptual_hash, sha256_hash, now, now))
 
-        self.conn.commit()
+        self._commit_with_retry()
         return cursor.lastrowid
 
     def get_image_by_path(self, file_path: str) -> Optional[Dict[str, Any]]:
@@ -238,7 +264,7 @@ class ImageDatabase:
             INSERT INTO failed_images (file_path, error_message)
             VALUES (?, ?)
         """, (file_path, error_message))
-        self.conn.commit()
+        self._commit_with_retry()
 
     def update_processing_status(self, job_name: str, total_files: int = 0,
                                 processed_files: int = 0, failed_files: int = 0,
@@ -263,7 +289,7 @@ class ImageDatabase:
         """, (job_name, total_files, processed_files, failed_files,
               last_checkpoint, now, now, now if completed else None))
 
-        self.conn.commit()
+        self._commit_with_retry()
 
     def get_processing_status(self, job_name: str) -> Optional[Dict[str, Any]]:
         """Get processing status for a job."""
@@ -323,7 +349,7 @@ class ImageDatabase:
             """, (canonical_id, rating, comment))
             rating_id = cursor.lastrowid
 
-        self.conn.commit()
+        self._commit_with_retry()
         return rating_id
 
     def get_rating(self, image_id: int) -> Optional[Dict[str, Any]]:
@@ -349,7 +375,7 @@ class ImageDatabase:
 
         cursor = self.conn.cursor()
         cursor.execute("DELETE FROM ratings WHERE image_id = ?", (canonical_id,))
-        self.conn.commit()
+        self._commit_with_retry()
 
     def get_images_with_ratings(self, limit: Optional[int] = None,
                                 offset: int = 0,
@@ -498,7 +524,7 @@ class ImageDatabase:
                 WHERE id = ?
             """, (orig_id, dup_id))
 
-        self.conn.commit()
+        self._commit_with_retry()
         print(f"Marked {len(duplicates)} duplicate images")
         return len(duplicates)
 
@@ -555,7 +581,7 @@ class ImageDatabase:
             "INSERT INTO tags (name) VALUES (?)",
             (name,)
         )
-        self.conn.commit()
+        self._commit_with_retry()
         return cursor.lastrowid
 
     def get_all_tags(self) -> List[Dict[str, Any]]:
@@ -609,7 +635,7 @@ class ImageDatabase:
             "INSERT INTO image_tags (image_id, tag_id) VALUES (?, ?)",
             (canonical_id, tag_id)
         )
-        self.conn.commit()
+        self._commit_with_retry()
         return True
 
     def remove_tag_from_image(self, image_id: int, tag_id: int) -> bool:
@@ -631,7 +657,7 @@ class ImageDatabase:
             "DELETE FROM image_tags WHERE image_id = ? AND tag_id = ?",
             (canonical_id, tag_id)
         )
-        self.conn.commit()
+        self._commit_with_retry()
         return cursor.rowcount > 0
 
     def get_tags_for_image(self, image_id: int) -> List[Dict[str, Any]]:
@@ -692,7 +718,7 @@ class ImageDatabase:
                     )
                     added += 1
 
-        self.conn.commit()
+        self._commit_with_retry()
         return added
 
     def delete_unused_tags(self) -> int:
@@ -709,7 +735,7 @@ class ImageDatabase:
                 SELECT DISTINCT tag_id FROM image_tags
             )
         """)
-        self.conn.commit()
+        self._commit_with_retry()
         return cursor.rowcount
 
     def close(self):
