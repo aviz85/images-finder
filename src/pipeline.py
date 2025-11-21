@@ -79,6 +79,9 @@ class IndexingPipeline:
         failed = 0
         skipped = 0
         start_processing = time.time()
+        
+        # Batch size for commits (commit every N images for better performance)
+        batch_size = 100
 
         for idx, file_path in enumerate(tqdm(image_files, desc="Registering images", unit="img")):
             try:
@@ -105,7 +108,7 @@ class IndexingPipeline:
                 # Compute SHA-256 hash for exact file duplicate detection
                 sha256_hash = self.image_processor.compute_sha256_hash(file_path)
 
-                # Add to database
+                # Add to database (batch mode - no auto-commit)
                 self.db.add_image(
                     file_path=str(file_path),
                     file_name=file_path.name,
@@ -115,9 +118,14 @@ class IndexingPipeline:
                     format=info['format'],
                     thumbnail_path=str(thumbnail_path) if thumbnail_path else None,
                     perceptual_hash=perceptual_hash,
-                    sha256_hash=sha256_hash
+                    sha256_hash=sha256_hash,
+                    auto_commit=False  # Batch mode
                 )
                 registered += 1
+                
+                # Commit every batch_size images
+                if registered % batch_size == 0:
+                    self.db.commit()
 
                 # Log progress every 10000 images
                 if (idx + 1) % 10000 == 0:
@@ -132,6 +140,9 @@ class IndexingPipeline:
                 logger.error(f"Error processing {file_path}: {e}")
                 self.db.add_failed_image(str(file_path), str(e))
                 failed += 1
+        
+        # Final commit for any remaining images
+        self.db.commit()
 
         total_time = time.time() - start_time
         logger.info(f"Registration complete in {timedelta(seconds=int(total_time))}")

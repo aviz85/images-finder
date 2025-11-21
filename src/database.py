@@ -20,8 +20,16 @@ class ImageDatabase:
         """Initialize database schema."""
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
-        # Set timeout for better concurrency handling (30 seconds)
-        self.conn.execute("PRAGMA busy_timeout = 30000")
+        
+        # Enable Write-Ahead Logging for better concurrent write performance
+        # WAL allows multiple readers and one writer simultaneously
+        self.conn.execute("PRAGMA journal_mode = WAL")
+        
+        # Set timeout for better concurrency handling (60 seconds)
+        self.conn.execute("PRAGMA busy_timeout = 60000")
+        
+        # Optimize for concurrent access
+        self.conn.execute("PRAGMA synchronous = NORMAL")  # Faster, still safe with WAL
 
         cursor = self.conn.cursor()
 
@@ -183,8 +191,13 @@ class ImageDatabase:
                   thumbnail_path: Optional[str] = None,
                   embedding_index: Optional[int] = None,
                   perceptual_hash: Optional[str] = None,
-                  sha256_hash: Optional[str] = None) -> int:
-        """Add or update an image record."""
+                  sha256_hash: Optional[str] = None,
+                  auto_commit: bool = True) -> int:
+        """Add or update an image record.
+        
+        Args:
+            auto_commit: If True, commits immediately. If False, caller must commit manually.
+        """
         cursor = self.conn.cursor()
         now = datetime.utcnow().isoformat()
 
@@ -207,8 +220,13 @@ class ImageDatabase:
         """, (file_path, file_name, file_size, width, height, format,
               thumbnail_path, embedding_index, perceptual_hash, sha256_hash, now, now))
 
-        self._commit_with_retry()
+        if auto_commit:
+            self._commit_with_retry()
         return cursor.lastrowid
+    
+    def commit(self):
+        """Manually commit pending transactions."""
+        self._commit_with_retry()
 
     def get_image_by_path(self, file_path: str) -> Optional[Dict[str, Any]]:
         """Get image record by file path."""
