@@ -18,15 +18,20 @@ class ImageDatabase:
 
     def _init_db(self):
         """Initialize database schema."""
-        self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        # Set timeout at connection level (5 minutes for slow USB drives)
+        self.conn = sqlite3.connect(
+            str(self.db_path), 
+            timeout=300.0,  # 5 minutes in seconds
+            check_same_thread=False
+        )
         self.conn.row_factory = sqlite3.Row
         
         # Enable Write-Ahead Logging for better concurrent write performance
         # WAL allows multiple readers and one writer simultaneously
         self.conn.execute("PRAGMA journal_mode = WAL")
         
-        # Set timeout for better concurrency handling (60 seconds)
-        self.conn.execute("PRAGMA busy_timeout = 60000")
+        # Set busy timeout (5 minutes = 300000ms)
+        self.conn.execute("PRAGMA busy_timeout = 300000")
         
         # Optimize for concurrent access
         self.conn.execute("PRAGMA synchronous = NORMAL")  # Faster, still safe with WAL
@@ -174,15 +179,21 @@ class ImageDatabase:
 
         self.conn.commit()
 
-    def _commit_with_retry(self, max_retries=5, delay=0.5):
-        """Commit with retry logic for database locks."""
+    def _commit_with_retry(self, max_retries=10, delay=1.0):
+        """Commit with retry logic for database locks.
+        
+        Args:
+            max_retries: Maximum number of retry attempts (default: 10)
+            delay: Base delay in seconds for exponential backoff (default: 1.0)
+        """
         for attempt in range(max_retries):
             try:
                 self.conn.commit()
                 return
             except sqlite3.OperationalError as e:
                 if "locked" in str(e) and attempt < max_retries - 1:
-                    time.sleep(delay * (attempt + 1))  # Exponential backoff
+                    wait_time = delay * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s, 8s...
+                    time.sleep(wait_time)
                     continue
                 raise
 
