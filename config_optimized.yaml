@@ -1,0 +1,46 @@
+# Optimized Configuration - No Thumbnails, Parallel Processing Ready
+# Performance optimized for Apple M1, USB 2.0 (will improve with USB 3.0)
+
+# Paths - Data on external drive, thumbnails in /tmp (not actively used)
+data_dir: /Volumes/My Book/images-finder-data
+db_path: /Volumes/My Book/images-finder-data/metadata.db
+index_path: /Volumes/My Book/images-finder-data/faiss.index
+embeddings_path: /Volumes/My Book/images-finder-data/embeddings.npy
+thumbnails_dir: /tmp/image-finder-thumbnails-disabled  # Not used, safe path
+
+# Model settings - Optimized for M1 CPU
+model_name: "ViT-B-32"
+pretrained: "openai"
+device: "cpu"  # M1 CPU is efficient
+batch_size: 32  # Good balance for M1
+
+# Image processing
+thumbnail_size: [384, 384]  # Not used but required in config
+image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+  - .webp
+  - .bmp
+  - .gif
+
+# FAISS index settings - Optimized for 3M+ images
+embedding_dim: 512  # ViT-B-32 dimension
+nlist: 8192  # Number of IVF clusters
+m_pq: 64  # PQ sub-vectors
+nbits_pq: 8  # Bits per PQ code
+nprobe: 64  # Clusters to search
+
+# Search settings
+top_k_ivf: 1000
+top_k_refined: 100
+
+# Processing - Optimized for parallel execution
+num_workers: 4  # Per process (3 processes × 4 workers = 12 total, good for 8 cores)
+checkpoint_interval: 500  # Frequent checkpoints for safety
+
+# Duplicate detection
+duplicate_hash_threshold: 5
+
+
+
