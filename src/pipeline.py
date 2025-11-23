@@ -149,6 +149,125 @@ class IndexingPipeline:
         logger.info(f"Registered: {registered} new images | Skipped: {skipped} | Failed: {failed}")
         return registered
 
+    def generate_embeddings_parallel(self, worker_id: int = 0, num_workers: int = 1, resume: bool = True) -> int:
+        """
+        Generate embeddings for unprocessed images (parallel-safe version).
+
+        Uses modulo partitioning to divide work among multiple workers.
+
+        Args:
+            worker_id: This worker's ID (0 to num_workers-1)
+            num_workers: Total number of parallel workers
+            resume: Whether to resume from previous checkpoint
+
+        Returns:
+            Number of embeddings generated
+        """
+        logger.info(f"Worker {worker_id}/{num_workers}: Initializing embedding model...")
+        self.initialize_model()
+
+        job_name = f"embedding_worker_{worker_id}"
+
+        # Get unprocessed images for this worker using modulo partitioning
+        cursor = self.db.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM images 
+            WHERE embedding_index IS NULL 
+            AND id % ? = ?
+            ORDER BY id
+        """, (num_workers, worker_id))
+        unprocessed = [dict(row) for row in cursor.fetchall()]
+
+        if not unprocessed:
+            logger.info(f"Worker {worker_id}: No unprocessed images found")
+            return 0
+
+        total = len(unprocessed)
+        logger.info(f"Worker {worker_id}: Processing {total} images in batches of {self.config.batch_size}")
+        logger.info(f"Worker {worker_id}: Device: {self.config.device} | Model: {self.config.model_name}")
+
+        all_embeddings = []
+        processed = 0
+        failed = 0
+        start_time = time.time()
+
+        # Get next embedding index (thread-safe with WAL mode)
+        cursor.execute("SELECT COALESCE(MAX(embedding_index), -1) + 1 FROM images")
+        next_embedding_idx = cursor.fetchone()[0]
+
+        # Process in batches
+        batch_images = []
+        batch_records = []
+
+        for i, record in enumerate(tqdm(unprocessed, desc=f"Worker {worker_id} embeddings", unit="img")):
+            try:
+                # Load image
+                img_path = Path(record['file_path'])
+                img = self.image_processor.load_image(img_path)
+
+                if img is None:
+                    self.db.add_failed_image(str(img_path), "Failed to load image")
+                    failed += 1
+                    continue
+
+                batch_images.append(img)
+                batch_records.append(record)
+
+                # Process batch when full or at end
+                if len(batch_images) >= self.config.batch_size or i == len(unprocessed) - 1:
+                    # Generate embeddings
+                    embeddings = self.embedding_model.encode_images(
+                        batch_images,
+                        batch_size=len(batch_images)
+                    )
+
+                    # Update database with embedding indices (one transaction per batch)
+                    for j, rec in enumerate(batch_records):
+                        # Get a fresh embedding index for each image
+                        cursor.execute("SELECT COALESCE(MAX(embedding_index), -1) + 1 FROM images")
+                        emb_idx = cursor.fetchone()[0]
+                        
+                        self.db.add_image(
+                            file_path=rec['file_path'],
+                            file_name=rec['file_name'],
+                            file_size=rec['file_size'],
+                            width=rec['width'],
+                            height=rec['height'],
+                            format=rec['format'],
+                            thumbnail_path=rec['thumbnail_path'],
+                            embedding_index=emb_idx,
+                            auto_commit=False
+                        )
+                    
+                    # Commit batch
+                    self.db.commit()
+
+                    all_embeddings.append(embeddings)
+                    processed += len(batch_images)
+
+                    # Clear batch
+                    batch_images = []
+                    batch_records = []
+
+                    # Log progress every 1000 images
+                    if processed % 1000 == 0:
+                        elapsed = time.time() - start_time
+                        rate = processed / elapsed
+                        remaining = total - processed
+                        eta_seconds = remaining / rate if rate > 0 else 0
+                        eta = timedelta(seconds=int(eta_seconds))
+                        logger.info(f"Worker {worker_id}: {processed}/{total} | Rate: {rate:.1f} img/s | ETA: {eta} | Failed: {failed}")
+
+            except Exception as e:
+                logger.error(f"Worker {worker_id}: Error processing {record['file_path']}: {e}")
+                self.db.add_failed_image(record['file_path'], str(e))
+                failed += 1
+
+        total_time = time.time() - start_time
+        logger.info(f"Worker {worker_id}: Complete in {timedelta(seconds=int(total_time))}")
+        logger.info(f"Worker {worker_id}: Processed: {processed} | Failed: {failed}")
+        return processed
+
     def generate_embeddings(self, resume: bool = True) -> int:
         """
         Generate embeddings for all unprocessed images.

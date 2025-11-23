@@ -1,6 +1,6 @@
 # 🤖 Claude AI Assistant - Project Context
 
-**Last Updated:** November 22, 2025  
+**Last Updated:** November 23, 2025  
 **Purpose:** Context document for AI assistants working on this project
 
 ---
@@ -12,11 +12,14 @@
 **Location:** External drive `/Volumes/My Book/`  
 **System:** Apple M1, 8 cores, 16 GB RAM, USB 2.0 connection
 
-### Current Status (as of Nov 22, 2025)
-- **Registered:** ~194,515 images (6.13%)
-- **SHA-256 Hashes:** ~12,335 (6.3%)
-- **Embeddings:** ~2,562 (0.08%)
-- **Processing Time:** ~6-7 days remaining with current setup
+### Current Status (as of Nov 23, 2025 - 3:35 PM)
+- **Registered:** 571,464 images (18.0%)
+- **SHA-256 Hashes:** Processing in background
+- **Embeddings:** 2,562 (0.4% of registered)
+- **Processing Rate:** ~16 images/sec (registration)
+- **Processing Time:** ~2-3 days remaining
+- **Status:** ✅ All processes running + caffeinate active
+- **Search Demo:** ✅ Working! (text & image similarity search)
 
 ---
 
@@ -53,14 +56,18 @@
    - Optimal for M1 + SQLite concurrency
 
 ### **Monitoring:**
-3. **`check_parallel_progress.sh`**
-   - Comprehensive progress monitoring
-   - Shows: process status, database stats, system load
+3. **`check_status.sh`** ⭐
+   - Simple, reliable status checker (use this one!)
+   - Shows: active processes, database stats, disk space, dashboard status
 
-4. **`check_sha256_duplicates.sh`**
+4. **`check_parallel_progress.sh`**
+   - Comprehensive progress monitoring (requires PID files)
+   - Alternative to check_status.sh
+
+5. **`check_sha256_duplicates.sh`**
    - SHA-256 duplicate detection progress and statistics
 
-5. **`show_duplicates.sh`**
+6. **`show_duplicates.sh`**
    - Perceptual hash duplicate statistics
 
 ### **Utilities:**
@@ -86,10 +93,11 @@ User wanted to avoid accidentally running wrong scripts when resuming after movi
 - `process_external_drive.sh` - Interactive version, outdated
 - `run_pipeline_parallel.sh` - 6-process version (too many, caused DB locks)
 
-**Monitoring Scripts (3):**
-- `check_status.sh` - Basic monitoring
+**Monitoring Scripts (2):**
 - `monitor_progress.sh` - Duplicate functionality
 - `list_duplicates.sh` - File export version
+
+**Note:** `check_status.sh` was later recreated (Nov 22) as a simpler alternative to `check_parallel_progress.sh`
 
 **Config Files (2):**
 - `config_external.yaml` - Duplicate of config_optimized.yaml
@@ -267,7 +275,10 @@ Total:     ~220% CPU (~27% of 8 cores)
 cd /Users/aviz/images-finder
 ./start_everything.sh
 
-# Check Progress
+# Check Progress (simple & reliable)
+./check_status.sh
+
+# Check Progress (detailed)
 ./check_parallel_progress.sh
 
 # Dashboard
@@ -365,7 +376,8 @@ pkill -f "live_dashboard"
 ```bash
 # Main workflow
 ./start_everything.sh                    # Start/resume everything
-./check_parallel_progress.sh             # Check progress
+./check_status.sh                        # Check progress (simple & reliable)
+./check_parallel_progress.sh             # Check progress (detailed)
 open http://localhost:8888               # Dashboard
 
 # Individual components
@@ -393,5 +405,189 @@ python test_installation.py
 
 ---
 
-**Remember:** User's priority is **NO DUPLICATES** and **SAFE RESUME**. Both are guaranteed by architecture. 🛡️
+## 🔄 Stop & Resume Instructions
+
+### **How to Stop Everything Safely:**
+
+```bash
+# Stop all processing (safe anytime)
+pkill -f "cli.py" && pkill -f "compute_hashes" && pkill -f "live_dashboard"
+
+# Or use keyboard: Ctrl+C in terminal running the processes
+```
+
+**✅ ALWAYS SAFE TO STOP:**
+- Database commits every 100 images
+- WAL mode ensures consistency
+- Smart scanner tracks progress
+- NO data will be lost!
+
+### **How to Resume After Stopping:**
+
+```bash
+# Resume everything
+./start_everything.sh
+
+# Or step by step:
+./restart_hash_computation.sh    # Hashing only
+./run_parallel_optimized.sh      # Registration + embeddings
+python3 live_dashboard.py &      # Dashboard
+```
+
+**What happens on resume:**
+- ✅ Skips already-registered images (smart scanner)
+- ✅ Skips images with hashes
+- ✅ Skips images with embeddings
+- ✅ Continues exactly where you left off
+- ✅ No duplicates possible (UNIQUE constraints)
+
+---
+
+## ⚡ Caffeinate - MUST USE!
+
+**CRITICAL:** Always run caffeinate when processing overnight or away from computer!
+
+### **Start Caffeinate:**
+```bash
+# Prevent display sleep, system sleep, disk sleep, and idle
+caffeinate -dims &
+
+# Verify it's running
+ps aux | grep caffeinate | grep -v grep
+```
+
+### **Why It's Essential:**
+- ❌ Without: Mac sleeps → USB disconnects → processing stops → data corruption risk
+- ✅ With: Mac stays awake → processing continues → safe completion
+
+### **Caffeinate is Running If You See:**
+```bash
+aviz    50735   0.0  0.0  caffeinate -dims
+```
+
+### **Stop Caffeinate:**
+```bash
+# Find PID
+ps aux | grep caffeinate | grep -v grep
+
+# Kill it
+kill <PID>
+```
+
+**⚠️  ALWAYS start caffeinate before leaving computer unattended!**
+
+---
+
+## 🔍 Search Demo - Test Similarity Search
+
+### **Text-to-Image Search:**
+```bash
+# Search by description
+python search_demo.py text "beach sunset ocean" -k 5
+
+# With Preview (opens results)
+python search_demo.py text "landscape mountains" -k 5 --open
+```
+
+### **Image-to-Image Search:**
+```bash
+# Find similar images
+python search_demo.py image "test_images/blue_01.jpg" -k 5
+
+# Open in Preview
+python search_demo.py image "/path/to/query.jpg" -k 10 --open
+```
+
+### **What It Does:**
+- ✅ Works with current 2,562 embeddings
+- ✅ Shows similarity scores (0-1, higher = more similar)
+- ✅ Regenerates embeddings on-the-fly (slow, for demo)
+- ✅ Opens results in Preview app (--open flag)
+- ⚠️  Full FAISS search available after processing completes
+
+### **Scores Meaning:**
+- **0.6-1.0:** Very similar (image search)
+- **0.3-0.6:** Moderately similar
+- **0.1-0.3:** Loosely related (text search)
+- **< 0.1:** Different content
+
+### **After Processing Completes:**
+```bash
+python cli.py save-embeddings   # Extract all embeddings
+python cli.py build-index       # Build FAISS index
+python cli.py search-text "sunset beach"
+python cli.py search-image query.jpg
+# → Search 3M images in milliseconds!
+```
+
+---
+
+## 📊 Current Status (Nov 23, 2025)
+
+### **Progress:**
+- **Registered:** 571,464 images (18.0%)
+- **With Embeddings:** 2,562 (0.4%)
+- **Failed:** 761 images
+- **Processing Rate:** ~16 images/sec (registration)
+
+### **Running Processes:**
+```bash
+ps aux | grep -E "(cli.py|compute_hashes|live_dashboard)" | grep -v grep
+
+# Should see:
+# - 3× registration workers (D, E, F)
+# - 1× hash computation
+# - 1× dashboard
+# - 1× caffeinate (MUST!)
+```
+
+### **Timeline:**
+- **Registration:** ~1.8 days remaining
+- **Embeddings:** ~10 hours (if parallel) or ~31 hours (single)
+- **Total:** ~2-3 days to completion
+
+### **Database Safety:**
+- ✅ WAL mode (multiple readers + one writer)
+- ✅ UNIQUE constraints (no duplicates possible)
+- ✅ 300-second timeout (no deadlocks)
+- ✅ Batch commits (every 100 images)
+
+---
+
+## 🎯 Quick Commands Reference
+
+```bash
+# Status
+./check_parallel_progress.sh
+./check_sha256_duplicates.sh
+open http://localhost:8888
+
+# Stop & Resume
+pkill -f "cli.py" && pkill -f "compute_hashes"
+./start_everything.sh
+
+# Caffeinate (CRITICAL!)
+caffeinate -dims &
+ps aux | grep caffeinate
+
+# Search Demo
+python search_demo.py text "beach sunset" -k 5 --open
+python search_demo.py image "path/to/image.jpg" -k 10 --open
+
+# Database Queries
+sqlite3 "/Volumes/My Book/images-finder-data/metadata.db" \
+  "SELECT COUNT(*), COUNT(embedding_index), COUNT(sha256_hash) FROM images"
+
+# Logs
+tail -f logs/process_D.log
+tail -f hash_computation.log
+tail -f dashboard.log
+```
+
+---
+
+**Remember:** 
+- 🛡️ User's priority is **NO DUPLICATES** and **SAFE RESUME** - both guaranteed!
+- ⚡ **ALWAYS use caffeinate** when leaving computer unattended!
+- 🔍 **Search demo** shows similarity search is working perfectly!
 
