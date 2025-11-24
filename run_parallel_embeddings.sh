@@ -39,10 +39,11 @@ echo "Starting Worker 1 (id % 3 = 0)..."
 nohup python3 -c "
 import sys
 sys.path.insert(0, '$BASE_DIR')
-from src.config import Config
+from pathlib import Path
+from src.config import load_config
 from src.pipeline import IndexingPipeline
 
-config = Config.from_yaml('$CONFIG')
+config = load_config(Path('$CONFIG'))
 pipeline = IndexingPipeline(config)
 pipeline.generate_embeddings_parallel(worker_id=0, num_workers=3, resume=True)
 " > "$LOG_DIR/embed_worker_0.log" 2>&1 &
@@ -55,10 +56,11 @@ echo "Starting Worker 2 (id % 3 = 1)..."
 nohup python3 -c "
 import sys
 sys.path.insert(0, '$BASE_DIR')
-from src.config import Config
+from pathlib import Path
+from src.config import load_config
 from src.pipeline import IndexingPipeline
 
-config = Config.from_yaml('$CONFIG')
+config = load_config(Path('$CONFIG'))
 pipeline = IndexingPipeline(config)
 pipeline.generate_embeddings_parallel(worker_id=1, num_workers=3, resume=True)
 " > "$LOG_DIR/embed_worker_1.log" 2>&1 &
@@ -71,10 +73,11 @@ echo "Starting Worker 3 (id % 3 = 2)..."
 nohup python3 -c "
 import sys
 sys.path.insert(0, '$BASE_DIR')
-from src.config import Config
+from pathlib import Path
+from src.config import load_config
 from src.pipeline import IndexingPipeline
 
-config = Config.from_yaml('$CONFIG')
+config = load_config(Path('$CONFIG'))
 pipeline = IndexingPipeline(config)
 pipeline.generate_embeddings_parallel(worker_id=2, num_workers=3, resume=True)
 " > "$LOG_DIR/embed_worker_2.log" 2>&1 &

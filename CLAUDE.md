@@ -12,14 +12,17 @@
 **Location:** External drive `/Volumes/My Book/`  
 **System:** Apple M1, 8 cores, 16 GB RAM, USB 2.0 connection
 
-### Current Status (as of Nov 23, 2025 - 3:35 PM)
-- **Registered:** 571,464 images (18.0%)
+### Current Status (as of Nov 24, 2025 - 10:15 AM)
+- **Registered:** 844,064 images (26.6%)
 - **SHA-256 Hashes:** Processing in background
-- **Embeddings:** 2,562 (0.4% of registered)
-- **Processing Rate:** ~16 images/sec (registration)
-- **Processing Time:** ~2-3 days remaining
-- **Status:** ✅ All processes running + caffeinate active
+- **Embeddings:** 2,562 → 842,802 being processed by 3 parallel workers
+- **Processing Rate:** 
+  - Registration: ~16 images/sec
+  - Embeddings: ~13.5 images/sec (3 parallel workers @ ~4.5 each)
+- **Processing Time:** ~3-4 days remaining
+- **Status:** ✅ All processes running + 3 parallel embedding workers + caffeinate active
 - **Search Demo:** ✅ Working! (text & image similarity search)
+- **Parallel Workers:** ✅ Active (PIDs: 89126, 89132, 89146)
 
 ---
 
@@ -522,29 +525,99 @@ python cli.py search-image query.jpg
 
 ---
 
-## 📊 Current Status (Nov 23, 2025)
+## ⚡ Parallel Embeddings (Active Since Nov 24, 2025)
+
+### **What's Running:**
+```
+✅ 3 Parallel Embedding Workers
+   - Worker 0 (PID 89126): Processes images where id % 3 = 0
+   - Worker 1 (PID 89132): Processes images where id % 3 = 1
+   - Worker 2 (PID 89146): Processes images where id % 3 = 2
+```
+
+### **Performance:**
+- **Single Worker:** ~4.5 img/sec → 10 days to complete
+- **3 Parallel Workers:** ~13.5 img/sec → ~3-4 days to complete
+- **Speedup:** 3× faster, saves ~6 days!
+
+### **How It Works:**
+Each worker processes a different subset of images using modulo partitioning:
+```sql
+-- Worker 0 gets: ids 0, 3, 6, 9, 12, ...
+SELECT * FROM images WHERE embedding_index IS NULL AND id % 3 = 0
+
+-- Worker 1 gets: ids 1, 4, 7, 10, 13, ...
+SELECT * FROM images WHERE embedding_index IS NULL AND id % 3 = 1
+
+-- Worker 2 gets: ids 2, 5, 8, 11, 14, ...
+SELECT * FROM images WHERE embedding_index IS NULL AND id % 3 = 2
+```
+
+### **Why It's Safe:**
+- ✅ **No overlap:** Each worker processes different images
+- ✅ **WAL mode:** Multiple readers + one writer at a time
+- ✅ **No deadlocks:** 300-second timeout
+- ✅ **Resumable:** Workers skip already-processed images
+- ✅ **No duplicates:** UNIQUE constraints prevent conflicts
+
+### **Commands:**
+```bash
+# Start parallel workers
+./run_parallel_embeddings.sh
+
+# Monitor individual workers
+tail -f logs/embed_worker_0.log
+tail -f logs/embed_worker_1.log
+tail -f logs/embed_worker_2.log
+
+# Check if running
+ps -p 89126,89132,89146
+
+# Stop all workers
+kill 89126 89132 89146
+
+# Or kill by pattern
+pkill -f "generate_embeddings_parallel"
+```
+
+### **Timeline:**
+```
+Nov 24 (10:15 AM):  844K registered, 2.5K with embeddings, 3 workers started
+Nov 25-26:          ~2-2.5M registered, ~500K with embeddings
+Nov 27-28:          3.17M registered, 3.17M with embeddings ✅ COMPLETE
+```
+
+---
+
+## 📊 Current Status (Nov 24, 2025 - 10:15 AM)
 
 ### **Progress:**
-- **Registered:** 571,464 images (18.0%)
-- **With Embeddings:** 2,562 (0.4%)
-- **Failed:** 761 images
-- **Processing Rate:** ~16 images/sec (registration)
+- **Registered:** 844,064 images (26.6%)
+- **With Embeddings:** 2,562 (being processed by 3 parallel workers)
+- **Waiting for Embeddings:** 842,802 images
+- **Failed:** 769 images
+- **Processing Rate:** 
+  - Registration: ~16 images/sec
+  - Embeddings: ~13.5 images/sec (3 workers combined)
 
 ### **Running Processes:**
 ```bash
-ps aux | grep -E "(cli.py|compute_hashes|live_dashboard)" | grep -v grep
+ps aux | grep -E "(cli.py|compute_hashes|live_dashboard|generate_embeddings)" | grep -v grep
 
 # Should see:
 # - 3× registration workers (D, E, F)
 # - 1× hash computation
+# - 3× embedding workers (parallel) ⚡ NEW!
 # - 1× dashboard
 # - 1× caffeinate (MUST!)
 ```
 
-### **Timeline:**
-- **Registration:** ~1.8 days remaining
-- **Embeddings:** ~10 hours (if parallel) or ~31 hours (single)
-- **Total:** ~2-3 days to completion
+### **Timeline:** (Updated with 3 Parallel Workers ⚡)
+- **Registration:** ~1.5 days remaining (from Nov 24)
+- **Embeddings:** ~2.7 days (3 parallel workers @ 13.5 img/sec)
+- **Total:** ~3-4 days to completion
+- **Completion Date:** ~Nov 27-28, 2025 🎯
+- **Time Saved:** ~6 days faster than single worker!
 
 ### **Database Safety:**
 - ✅ WAL mode (multiple readers + one writer)
@@ -563,12 +636,19 @@ ps aux | grep -E "(cli.py|compute_hashes|live_dashboard)" | grep -v grep
 open http://localhost:8888
 
 # Stop & Resume
-pkill -f "cli.py" && pkill -f "compute_hashes"
+pkill -f "cli.py" && pkill -f "compute_hashes" && pkill -f "generate_embeddings"
 ./start_everything.sh
+./run_parallel_embeddings.sh  # Start 3 parallel embedding workers ⚡
 
 # Caffeinate (CRITICAL!)
 caffeinate -dims &
 ps aux | grep caffeinate
+
+# Parallel Embeddings ⚡ NEW!
+./run_parallel_embeddings.sh                    # Start 3 workers
+ps -p 89126,89132,89146                         # Check if running
+tail -f logs/embed_worker_{0,1,2}.log          # Monitor workers
+kill 89126 89132 89146                          # Stop workers
 
 # Search Demo
 python search_demo.py text "beach sunset" -k 5 --open
@@ -582,6 +662,9 @@ sqlite3 "/Volumes/My Book/images-finder-data/metadata.db" \
 tail -f logs/process_D.log
 tail -f hash_computation.log
 tail -f dashboard.log
+tail -f logs/embed_worker_0.log  # Parallel embedding worker 0
+tail -f logs/embed_worker_1.log  # Parallel embedding worker 1
+tail -f logs/embed_worker_2.log  # Parallel embedding worker 2
 ```
 
 ---
