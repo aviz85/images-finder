@@ -68,3 +68,8 @@ count_*.txt
 
 # Scan cache
 .images-finder/
+
+# Embedding temp files (safe buffer)
+embeddings_temp/
+*.npy.lock
+data/embeddings_temp/

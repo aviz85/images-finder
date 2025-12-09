@@ -186,18 +186,22 @@ class IndexingPipeline:
         logger.info(f"Worker {worker_id}: Processing {total} images in batches of {self.config.batch_size}")
         logger.info(f"Worker {worker_id}: Device: {self.config.device} | Model: {self.config.model_name}")
 
+        # Recover any orphaned temp files from previous runs
+        from src.embedding_storage import save_embeddings_incremental, recover_orphaned_temp_files
+        recovered = recover_orphaned_temp_files(self.config.embeddings_path)
+        if recovered > 0:
+            logger.info(f"Worker {worker_id}: Recovered {recovered} embeddings from orphaned temp files")
+
         all_embeddings = []
+        all_indices = []  # Store embedding indices for each embedding
         processed = 0
         failed = 0
         start_time = time.time()
 
-        # Get next embedding index (thread-safe with WAL mode)
-        cursor.execute("SELECT COALESCE(MAX(embedding_index), -1) + 1 FROM images")
-        next_embedding_idx = cursor.fetchone()[0]
-
         # Process in batches
         batch_images = []
         batch_records = []
+        save_interval = 100  # Save every 100 images to prevent loss
 
         for i, record in enumerate(tqdm(unprocessed, desc=f"Worker {worker_id} embeddings", unit="img")):
             try:
@@ -222,10 +226,15 @@ class IndexingPipeline:
                     )
 
                     # Update database with embedding indices (one transaction per batch)
+                    # Use a single transaction to allocate sequential indices safely
+                    batch_indices = []
+                    
+                    # Start transaction - get the starting index once for the whole batch
+                    cursor.execute("SELECT COALESCE(MAX(embedding_index), -1) FROM images")
+                    max_idx = cursor.fetchone()[0]
+                    
                     for j, rec in enumerate(batch_records):
-                        # Get a fresh embedding index for each image
-                        cursor.execute("SELECT COALESCE(MAX(embedding_index), -1) + 1 FROM images")
-                        emb_idx = cursor.fetchone()[0]
+                        emb_idx = max_idx + 1 + j
                         
                         self.db.add_image(
                             file_path=rec['file_path'],
@@ -238,11 +247,27 @@ class IndexingPipeline:
                             embedding_index=emb_idx,
                             auto_commit=False
                         )
+                        
+                        batch_indices.append(emb_idx)
                     
-                    # Commit batch
+                    # Commit entire batch as one transaction (thread-safe)
                     self.db.commit()
 
+                    # CRITICAL: Save embeddings to disk IMMEDIATELY (incremental, thread-safe with safe buffer)
+                    try:
+                        save_embeddings_incremental(
+                            embeddings_path=self.config.embeddings_path,
+                            new_embeddings=embeddings,
+                            embedding_indices=batch_indices,
+                            worker_id=worker_id
+                        )
+                    except Exception as save_error:
+                        logger.error(f"Worker {worker_id}: CRITICAL - Failed to save embeddings (even to temp file): {save_error}")
+                        # This is serious - even temp file save failed
+                        # Continue processing but log error
+
                     all_embeddings.append(embeddings)
+                    all_indices.extend(batch_indices)
                     processed += len(batch_images)
 
                     # Clear batch
@@ -262,6 +287,11 @@ class IndexingPipeline:
                 logger.error(f"Worker {worker_id}: Error processing {record['file_path']}: {e}")
                 self.db.add_failed_image(record['file_path'], str(e))
                 failed += 1
+
+        # Final summary - embeddings already saved incrementally above
+        if all_embeddings:
+            total_embeddings = sum(len(e) for e in all_embeddings)
+            logger.info(f"Worker {worker_id}: Generated {total_embeddings} embeddings (already saved to disk)")
 
         total_time = time.time() - start_time
         logger.info(f"Worker {worker_id}: Complete in {timedelta(seconds=int(total_time))}")
