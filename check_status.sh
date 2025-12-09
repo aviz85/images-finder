@@ -8,10 +8,20 @@ echo ""
 
 # Check running processes
 echo "🚀 RUNNING PROCESSES:"
-count=$(ps aux | grep -E "cli.py|compute_hashes" | grep -v grep | wc -l | tr -d ' ')
-if [ "$count" -gt 0 ]; then
-    echo "  ✅ $count active processes"
-    ps aux | grep -E "cli.py|compute_hashes" | grep -v grep | awk '{print "     - PID " $2 ": CPU " $3 "%, MEM " $4 "%"}'
+# Check for all processing types
+embedding_count=$(ps aux | grep -E "generate_embeddings_parallel" | grep -v grep | wc -l | tr -d ' ')
+other_count=$(ps aux | grep -E "cli.py|compute_hashes" | grep -v grep | wc -l | tr -d ' ')
+total_count=$((embedding_count + other_count))
+
+if [ "$total_count" -gt 0 ]; then
+    echo "  ✅ $total_count active processes"
+    if [ "$embedding_count" -gt 0 ]; then
+        echo "     Embedding workers: $embedding_count"
+        ps aux | grep -E "generate_embeddings_parallel" | grep -v grep | awk '{print "       - PID " $2 " (embedding): CPU " $3 "%, MEM " $4 "%"}'
+    fi
+    if [ "$other_count" -gt 0 ]; then
+        ps aux | grep -E "cli.py|compute_hashes" | grep -v grep | awk '{print "       - PID " $2 ": CPU " $3 "%, MEM " $4 "%"}'
+    fi
 else
     echo "  ❌ No processes running!"
 fi
@@ -22,7 +32,7 @@ echo "📊 DATABASE STATISTICS:"
 python3 << 'EOF'
 import sqlite3
 try:
-    conn = sqlite3.connect('/Volumes/My Book/images-finder-data/metadata.db')
+    conn = sqlite3.connect('/Users/aviz/images-finder/data/metadata.db')
     cur = conn.cursor()
     
     cur.execute('SELECT COUNT(*) FROM images')
@@ -70,5 +80,7 @@ echo ""
 echo "=========================================="
 echo "✅ All systems operational!"
 echo "=========================================="
+
+
 
 
