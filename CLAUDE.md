@@ -258,22 +258,36 @@ cd gallery/vercel-deploy && vercel --prod --yes
 
 **Safe regeneration script:** `regenerate_embeddings_safe.py`
 
+### Quick Start
 ```bash
-# Regenerate all embeddings (preserves ID order)
+# Full regeneration (plug and play)
 python regenerate_embeddings_safe.py
 
-# Resume from last checkpoint
+# Verify existing embeddings without changing
+python regenerate_embeddings_safe.py --verify-only
+
+# Resume from where we stopped
 python regenerate_embeddings_safe.py --resume
 
-# Custom batch size
-python regenerate_embeddings_safe.py --batch-size 64
+# Retry only failed images
+python regenerate_embeddings_safe.py --retry-failed
 ```
 
-**How order is preserved:**
-- Index in `embeddings.npy` = image ID in database
-- Script processes images in `ORDER BY id`
-- Progress saved every 1000 images
-- Zero vectors for failed images (maintains alignment)
+### Safety Guarantees (5 layers)
+| # | Mechanism | What it prevents |
+|---|-----------|------------------|
+| 1 | **Pre-allocate** `np.zeros((max_id+1, 512))` | Array size mismatch |
+| 2 | **Direct assignment** `embeddings[id] = vector` | Index shifting |
+| 3 | **Verification** at end | Confirms 100% alignment |
+| 4 | **Failed log** `embedding_failed.txt` | Can retry only failed |
+| 5 | **Backup** before each save | Can restore if corrupted |
+
+### How it works
+- Creates array of size `max_id + 1` filled with zeros
+- For each image: `embeddings[image_id] = vector` (direct position)
+- Failed images stay as zeros, logged to file
+- Progress saved every 1000 images with backup
+- Final verification confirms all IDs match positions
 
 **Data integrity:**
 | Data | Location | Needs Embeddings? |
