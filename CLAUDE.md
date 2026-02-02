@@ -1,676 +1,299 @@
-# 🤖 Claude AI Assistant - Project Context
+# CLAUDE.md
 
-**Last Updated:** November 23, 2025  
-**Purpose:** Context document for AI assistants working on this project
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
----
+## Project Overview
 
-## 📋 Project Overview
+Local semantic image search engine for millions of images using OpenCLIP embeddings and FAISS indexing. Privacy-preserving (fully local), supports text-to-image and image-to-image search.
 
-**Project:** Local Semantic Image Search Engine  
-**Scale:** 3.17 million images across 15.7 TB  
-**Location:** External drive `/Volumes/My Book/`  
-**System:** Apple M1, 8 cores, 16 GB RAM, USB 2.0 connection
+**Scale:** ~3.8M images, 15.7 TB on external drive (`/Volumes/My Book/`)
+**System:** Apple M1, 8 cores, 16 GB RAM
 
-### Current Status (as of Nov 24, 2025 - 10:15 AM)
-- **Registered:** 844,064 images (26.6%)
-- **SHA-256 Hashes:** Processing in background
-- **Embeddings:** 2,562 → 842,802 being processed by 3 parallel workers
-- **Processing Rate:** 
-  - Registration: ~16 images/sec
-  - Embeddings: ~13.5 images/sec (3 parallel workers @ ~4.5 each)
-- **Processing Time:** ~3-4 days remaining
-- **Status:** ✅ All processes running + 3 parallel embedding workers + caffeinate active
-- **Search Demo:** ✅ Working! (text & image similarity search)
-- **Parallel Workers:** ✅ Active (PIDs: 89126, 89132, 89146)
-
----
-
-## 🗂️ Project Structure
-
-### **Core Application (`src/`)**
-- `config.py` - Configuration management
-- `database.py` - SQLite database with WAL mode, UNIQUE constraints
-- `pipeline.py` - Batch processing with smart scanner, resume support
-- `embeddings.py` - OpenCLIP (ViT-B-32) embedding generation
-- `faiss_index.py` - FAISS IVF-PQ indexing for search
-- `image_processor.py` - Image processing, hashing (thumbnails disabled)
-- `search.py` - Text-to-image and image-to-image search
-- `smart_scanner.py` - Database-backed scanner to avoid re-scanning
-
-### **Entry Points**
-- `cli.py` - Command-line interface (Click framework)
-- `server.py` - FastAPI HTTP server
-- `live_dashboard.py` - Real-time dashboard on port 8888
-
----
-
-## 🚀 Active Scripts (Use These)
-
-### **Main Processing:**
-1. **`start_everything.sh`** ⭐
-   - Entry point for all processing
-   - Starts: hash computation + parallel processing + dashboard
-   - Uses: `config_optimized.yaml`
-
-2. **`run_parallel_optimized.sh`**
-   - Called by start_everything.sh
-   - Runs 5 parallel processes (3 registration + 2 embedding)
-   - Optimal for M1 + SQLite concurrency
-
-### **Monitoring:**
-3. **`check_status.sh`** ⭐
-   - Simple, reliable status checker (use this one!)
-   - Shows: active processes, database stats, disk space, dashboard status
-
-4. **`check_parallel_progress.sh`**
-   - Comprehensive progress monitoring (requires PID files)
-   - Alternative to check_status.sh
-
-5. **`check_sha256_duplicates.sh`**
-   - SHA-256 duplicate detection progress and statistics
-
-6. **`show_duplicates.sh`**
-   - Perceptual hash duplicate statistics
-
-### **Utilities:**
-6. **`restart_hash_computation.sh`**
-   - Restarts `compute_hashes_simple.py` in background
-
-7. **`restart_embeddings.sh`**
-   - Restarts 2 embedding workers
-
-8. **`open_duplicate_group.sh`**
-   - Opens specific duplicate group in Preview
-
----
-
-## 🗑️ Recently Deleted Scripts (Nov 22, 2025)
-
-### Why We Cleaned Up:
-User wanted to avoid accidentally running wrong scripts when resuming after moving computer or shutting down.
-
-### Deleted Files:
-**Pipeline Scripts (3):**
-- `process_all_overnight.sh` - Sequential version, slower
-- `process_external_drive.sh` - Interactive version, outdated
-- `run_pipeline_parallel.sh` - 6-process version (too many, caused DB locks)
-
-**Monitoring Scripts (2):**
-- `monitor_progress.sh` - Duplicate functionality
-- `list_duplicates.sh` - File export version
-
-**Note:** `check_status.sh` was later recreated (Nov 22) as a simpler alternative to `check_parallel_progress.sh`
-
-**Config Files (2):**
-- `config_external.yaml` - Duplicate of config_optimized.yaml
-- `config_benchmark.yaml` - Testing only
-
----
-
-## ⚙️ Configuration
-
-### **Active Config: `config_optimized.yaml`**
-```yaml
-Database: /Volumes/My Book/images-finder-data/metadata.db
-Embeddings: /Volumes/My Book/images-finder-data/embeddings.npy
-Index: /Volumes/My Book/images-finder-data/faiss.index
-Model: ViT-B-32 (OpenAI CLIP)
-Device: CPU (M1)
-Batch Size: 32
-Thumbnails: DISABLED (filesystem issues + performance)
-Checkpoints: Every 500 images
-```
-
-### Other Configs:
-- `config.example.yaml` - Template for new users
-- `config.yaml` - Local development (not used for production)
-
----
-
-## 🔐 Duplicate Prevention Architecture
-
-### **Three-Layer Protection:**
-
-**Layer 1: Smart Scanner**
-- Queries database for all registered `file_path` entries
-- Filters them out before processing starts
-- Located: `src/smart_scanner.py`
-
-**Layer 2: Pipeline Check**
-```python
-# src/pipeline.py line 88-92
-existing = self.db.get_image_by_path(str(file_path))
-if existing:
-    skipped += 1
-    continue
-```
-
-**Layer 3: Database UNIQUE Constraint**
-```sql
-CREATE TABLE images (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_path TEXT UNIQUE NOT NULL,  -- Enforces uniqueness
-    ...
-)
-```
-
-**Plus: ON CONFLICT UPDATE**
-```python
-# src/database.py line 220
-ON CONFLICT(file_path) DO UPDATE SET
-    file_size=excluded.file_size,
-    ...
-```
-
-### Result:
-- ✅ **Impossible to create duplicate entries**
-- ✅ Safe to stop/start anytime
-- ✅ Safe to run different scripts (all use same DB)
-- ✅ Safe to move computer and resume
-
----
-
-## 🔄 Resume/Restart Workflow
-
-### User Can:
-1. Stop processing anytime (Ctrl+C, shutdown, unplug drive)
-2. Move computer
-3. Plug drive back in
-4. Run `./start_everything.sh`
-5. Processing continues exactly where it left off
-
-### How It Works:
-- Database tracks all registered images
-- Processing status table tracks checkpoints
-- Smart scanner excludes already-registered images
-- Embedding generation only processes unprocessed images
-- Batch commits every 100 images (safe if process crashes)
-
----
-
-## 🐛 Known Issues & Solutions
-
-### **Issue 1: Thumbnail Generation**
-- **Problem:** Filesystem errors on external NTFS/exFAT drive
-- **Solution:** ✅ DISABLED in code (line 101-103 of `src/pipeline.py`)
-- **Status:** Working as intended, no thumbnails generated
-
-### **Issue 2: SQLite Database Locks**
-- **Problem:** 6+ concurrent processes cause "database is locked" errors
-- **Solution:** ✅ Reduced to 5 processes, enabled WAL mode, batch commits
-- **Status:** Stable with current configuration
-
-### **Issue 3: USB 2.0 Bottleneck**
-- **Problem:** Limited to ~40 MB/s, slows embedding generation
-- **Solution:** ⏳ Recommend USB 3.0 cable ($10-20, 3-4x faster)
-- **Status:** Working but slow, can upgrade cable for 2x speedup
-
-### **Issue 4: Scanning Takes Time**
-- **Problem:** Initial directory scan takes 30-60 minutes
-- **Solution:** ✅ Smart scanner caches results (implemented)
-- **Status:** First scan slow, subsequent scans fast
-
----
-
-## 📊 Database Schema (Key Tables)
-
-### **`images` Table**
-```sql
-- id (PRIMARY KEY)
-- file_path (UNIQUE NOT NULL)  -- Full path, enforces no duplicates
-- file_name
-- file_size, width, height, format
-- thumbnail_path (always NULL, disabled)
-- embedding_index (position in embeddings.npy)
-- perceptual_hash (phash for visual duplicate detection)
-- sha256_hash (for exact duplicate detection)
-- is_duplicate, duplicate_of (duplicate tracking)
-- processed_at, created_at, updated_at
-```
-
-### **`processing_status` Table**
-- Tracks checkpoint state for resumable jobs
-- job_name (UNIQUE)
-- total_files, processed_files, failed_files
-- last_checkpoint timestamp
-
-### **`failed_images` Table**
-- Logs images that failed to process
-- file_path, error_message, failed_at
-
----
-
-## 🔧 Performance Characteristics
-
-### Current Setup:
-- **Registration:** 6-8 img/s (3 parallel processes)
-- **Embedding:** 2-3 img/s per worker (2 workers, USB 2.0 limited)
-- **Total:** ~5-6 img/s combined
-- **Time:** 6-7 days for 3.17M images
-
-### With USB 3.0:
-- **Registration:** 15-20 img/s
-- **Embedding:** 5-7 img/s per worker
-- **Total:** 10-12 img/s combined
-- **Time:** 3-4 days for 3.17M images
-
-### Process Layout:
-```
-Process 1: Register Dir D    ~10% CPU (I/O bound)
-Process 2: Register Dir E    ~10% CPU (I/O bound)
-Process 3: Register Dir F    ~10% CPU (I/O bound)
-Process 4: Embed Worker 1    ~80% CPU (CPU bound)
-Process 5: Embed Worker 2    ~80% CPU (CPU bound)
----------------------------------------------------
-Total:     ~220% CPU (~27% of 8 cores)
-           ~10 GB RAM
-           SQLite handles 5 connections well
-```
-
----
-
-## 🎯 User Workflow
-
-### Daily Workflow:
-```bash
-# Start/Resume
-cd /Users/aviz/images-finder
-./start_everything.sh
-
-# Check Progress (simple & reliable)
-./check_status.sh
-
-# Check Progress (detailed)
-./check_parallel_progress.sh
-
-# Dashboard
-open http://localhost:8888
-
-# Stop (when needed)
-pkill -f "cli.py"
-pkill -f "compute_hashes"
-pkill -f "live_dashboard"
-```
-
-### User's Main Concern:
-**"I move my computer a lot and restart processing. Will I create duplicates or inconsistent data?"**
-
-**Answer:** No. All scripts use the same database with UNIQUE constraints. Safe to stop/start anytime with any script.
-
----
-
-## 📝 Important Files for Context
-
-### **User Guides:**
-- `WHICH_SCRIPTS_TO_USE.md` ⭐ - Main reference guide
-- `RESUME_AFTER_SHUTDOWN.md` - Resume instructions
-- `README.md` - Project overview
-- `QUICKSTART.md` - Getting started guide
-
-### **Technical Reports:**
-- `OPTIMIZATION_COMPLETE_REPORT.md` - Performance analysis
-- `WAL_MODE_FIX.md` - Database concurrency solution
-- `EMBEDDING_FIX_COMPLETE.md` - Embedding process fixes
-- `SHA256_VS_PERCEPTUAL_HASH.md` - Duplicate detection approaches
-
-### **Status/Progress:**
-- `STATUS_SUMMARY.md` - Processing status snapshot
-- `PROJECT_SUMMARY.md` - Technical project summary
-
----
-
-## 💡 Key Insights for AI Assistants
-
-### Architecture Decisions:
-1. **SQLite with WAL Mode** - Enables 5 concurrent writers without major conflicts
-2. **Batch Commits (100 images)** - 100x fewer lock requests, much faster
-3. **Smart Scanner** - Eliminates redundant directory scanning
-4. **Thumbnails Disabled** - Filesystem issues + 35% performance drain
-5. **5 Processes (not 6)** - SQLite sweet spot, avoids lock contention
-
-### Code Patterns:
-- All database writes use `_commit_with_retry()` (exponential backoff)
-- All image additions use `ON CONFLICT(file_path) DO UPDATE`
-- All pipelines check `get_image_by_path()` before adding
-- All embedding generation uses `get_unprocessed_images()`
-
-### Testing Changes:
-- Database is on external drive (backup important!)
-- Test changes with small sample first
-- Monitor `check_parallel_progress.sh` for issues
-- Check logs in `logs/` directory
-
----
-
-## 🚨 What NOT to Do
-
-### Don't:
-- ❌ Change database schema without migration (existing data!)
-- ❌ Remove UNIQUE constraint on file_path
-- ❌ Re-enable thumbnail generation (filesystem issues)
-- ❌ Increase to 6+ parallel processes (database locks)
-- ❌ Hardcode paths (use config files)
-- ❌ Add new scripts without documenting them
-
-### Do:
-- ✅ Test with small datasets first
-- ✅ Keep duplicate protection layers
-- ✅ Document new scripts in `WHICH_SCRIPTS_TO_USE.md`
-- ✅ Use batch commits for database writes
-- ✅ Check existing progress before suggesting re-processing
-
----
-
-## 🔮 Future Enhancements (Not Yet Implemented)
-
-- [ ] USB 3.0 cable upgrade (hardware, user's choice)
-- [ ] Web UI for search (server.py exists but not actively used)
-- [ ] Automatic duplicate removal workflow
-- [ ] Multi-language search support (Hebrew + English)
-- [ ] Image clustering and organization
-- [ ] Real-time folder watching
-- [ ] Distributed processing across multiple machines
-
----
-
-## 📞 Quick Reference Commands
+## Commands
 
 ```bash
-# Main workflow
-./start_everything.sh                    # Start/resume everything
-./check_status.sh                        # Check progress (simple & reliable)
-./check_parallel_progress.sh             # Check progress (detailed)
-open http://localhost:8888               # Dashboard
-
-# Individual components
-./restart_hash_computation.sh            # Restart hashing only
-./restart_embeddings.sh                  # Restart embeddings only
-
-# Duplicates
-./check_sha256_duplicates.sh             # SHA-256 stats
-./show_duplicates.sh                     # Perceptual hash stats
-./open_duplicate_group.sh 1              # View group in Preview
-
-# Database queries
-sqlite3 "/Volumes/My Book/images-finder-data/metadata.db" \
-  "SELECT COUNT(*) FROM images"
-
-# Stop everything
-pkill -f "cli.py" && pkill -f "compute_hashes" && pkill -f "live_dashboard"
-
-# Test installation
-python test_installation.py
+# Setup
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
 
 # Run tests
-./run_tests.sh
+./run_tests.sh                           # All tests with coverage
+pytest tests/ -v                         # All tests
+pytest tests/test_database.py -v         # Single test file
+pytest tests/ -m "not integration"       # Unit tests only
+pytest tests/ -m integration             # Integration tests only
+
+# CLI usage
+python cli.py --config config_optimized.yaml run-pipeline /path/to/images
+python cli.py --config config_optimized.yaml search-text "sunset over mountains" --top-k 20
+python cli.py --config config_optimized.yaml search-image query.jpg --top-k 20
+python cli.py --config config_optimized.yaml stats
+
+# API server
+python server.py                         # Starts on port 8000
+uvicorn server:app --host 0.0.0.0 --port 8000
+
+# Processing scripts
+./start_everything.sh                    # Start all processing (registration + embeddings + dashboard)
+./check_status.sh                        # Check progress (simple)
+./run_parallel_embeddings.sh             # Start 2 parallel embedding workers
+pkill -f "cli.py" && pkill -f "compute_hashes" && pkill -f "generate_embeddings"  # Stop all
+
+# Backups
+./backup_database.sh                     # Safe while workers running
+./backup_embeddings.sh
 ```
 
----
+## Architecture
 
-## 🔄 Stop & Resume Instructions
+```
+src/
+├── config.py           # Pydantic config from YAML, handles paths/model/FAISS settings
+├── database.py         # SQLite with WAL mode, UNIQUE on file_path, batch commits
+├── embeddings.py       # OpenCLIP (ViT-B-32) embedding generation + caching
+├── embedding_storage.py # Thread-safe incremental .npy storage with filelock
+├── faiss_index.py      # FAISS IVF-PQ index, HybridSearch for accuracy
+├── pipeline.py         # Batch processing with checkpoints, smart scanner
+├── search.py           # ImageSearchEngine: text/image queries, hybrid re-ranking
+├── image_processor.py  # PIL loading, perceptual hashing (imagehash)
+└── smart_scanner.py    # Skips already-registered images
 
-### **How to Stop Everything Safely:**
+Entry points:
+├── cli.py              # Click CLI: index, embed, build-index, search-text, search-image, run-pipeline
+└── server.py           # FastAPI: /search/text, /search/image, /browse, /thumbnail/{id}, /rating/{id}
+```
+
+**Data flow:**
+1. `pipeline.scan_and_register_images()` → SQLite (file_path UNIQUE)
+2. `pipeline.generate_embeddings()` → embeddings.npy (incremental, resumable)
+3. `FAISSIndex.build_ivf_pq_index()` → faiss.index
+4. `ImageSearchEngine.search_by_text/image()` → hybrid IVF-PQ + exact re-rank
+
+## Key Design Decisions
+
+**SQLite concurrency:** WAL mode + 300s timeout + batch commits (100 images). Max 5 concurrent processes safe.
+
+**Duplicate prevention (3 layers):**
+1. Smart scanner filters already-registered paths before processing
+2. Pipeline checks `get_image_by_path()` before insert
+3. Database UNIQUE constraint on `file_path` with ON CONFLICT UPDATE
+
+**Embedding storage:** Thread-safe incremental saves using `filelock`. Workers partition by `id % num_workers` to avoid overlap. Survives crashes.
+
+**Thumbnails:** Disabled in code due to ExFAT filesystem issues on external drive.
+
+## Configuration
+
+Active config: `config_optimized.yaml`
+
+Key settings:
+- `db_path`, `embeddings_path`, `index_path`: Local SSD (backed up to external)
+- `model_name`: "ViT-B-32" (512-dim embeddings)
+- `embedding_mode`: "local" (CLIP) or "gemini" (API)
+- `batch_size`: 32
+- `nlist`: 8192, `m_pq`: 64, `nprobe`: 64 (FAISS IVF-PQ params)
+- `duplicate_hash_threshold`: 5 (Hamming distance for perceptual hash)
+
+## API Endpoints
+
+```
+GET  /health
+GET  /stats
+GET  /search/text?q=<query>&top_k=20
+POST /search/image (multipart file upload)
+GET  /browse?page=1&per_page=24&min_rating=3&tag_ids=1,2
+GET  /thumbnail/{image_id}
+GET  /image/{image_id}/similar
+POST /rating/{image_id}
+GET  /tags
+POST /tags/bulk
+```
+
+## Constraints
+
+- Never change database schema without migration (2.4M+ records exist)
+- Keep UNIQUE constraint on `file_path`
+- Keep thumbnails disabled (filesystem issues)
+- Max 5 parallel processes (SQLite lock contention)
+- Always use `caffeinate -dims &` for overnight processing
+- Database/embeddings on local SSD, images on external drive
+
+## Full Embeddings Database (3.4M images)
+
+**Location:** `/Volumes/My Book/ImageSearch/data/`
+
+| File | Size | Description |
+|------|------|-------------|
+| `embeddings.npy` | 6.5 GB | 3,387,179 × 512 CLIP embeddings |
+| `paths.txt` | 410 MB | Line-by-line file paths (line N = embedding index N) |
+| `search.index` | 241 MB | FAISS index |
+
+**⚠️ CRITICAL: Index Alignment Issues**
+
+| Range | Status | Accuracy |
+|-------|--------|----------|
+| **0-300,000** | ✅ Valid | 100% |
+| 300K-350K | ❌ Broken | 25% |
+| 350K-3.4M | ❌ Broken | ~0% |
+
+**Only use indices 0-300,000 for reliable results!**
+
+**Usage:**
+```python
+import numpy as np
+
+# Memory-map for efficiency (don't load all into RAM)
+emb = np.load('/Volumes/My Book/ImageSearch/data/embeddings.npy', mmap_mode='r')
+
+# ONLY USE FIRST 300K - rest has index alignment bugs!
+valid_emb = emb[:300000]
+
+# Get paths (only first 300K)
+with open('/Volumes/My Book/ImageSearch/data/paths.txt') as f:
+    paths = [line.strip() for i, line in enumerate(f) if i < 300000]
+
+# Index N in embeddings.npy corresponds to paths[N] (for N < 300000)
+```
+
+## Gallery Data (5,331 verified settlement images as of 2026-02-02)
+
+**Location:** `/Users/aviz/images-finder/gallery/`
+
+| Item | Location |
+|------|----------|
+| Gallery DB | `gallery/gallery.db` (thumbnails, metadata) |
+| Client review | `gallery/client-review/` |
+| Approved seeds | `gallery/client-review/approved_ids.txt` (125 IDs) |
+| Rejected | `gallery/client-review/rejected_ids.txt` (43 IDs) |
+| Gallery embeddings | `gallery/client-review/data/gallery_embeddings.npy` (11,724 × 512) |
+| Supabase project | `zvmeqrttfldvcvgzftyn` |
+| Vercel deploy | `gallery/vercel-deploy/` |
+
+**Gallery composition (CLEAN - only valid range 0-300K):**
+| Source | Count | Similarity |
+|--------|-------|------------|
+| KEEP from valid range | ~380 | CLIP classified |
+| Added (high quality) | 957 | >= 0.85 |
+| Added (medium quality) | 3,993 | 0.80-0.85 |
+| **Total Visible** | **5,331** | |
+| Hidden | 25,081 | Duplicates, REMOVE, broken range |
+| **Total in DB** | **30,412** | |
+
+## Settlement Image Search (Seeds-based)
+
+**Approach:** Use 125 manually verified settlement images as seeds, compute centroid, find similar images via cosine similarity.
+
+**Seeds location:** `gallery/client-review/approved_ids.txt`
+
+**Search code:**
+```python
+import numpy as np
+import sqlite3
+from pathlib import Path
+import re
+
+# Load seeds
+approved_text = Path('gallery/client-review/approved_ids.txt').read_text()
+approved_ids = set(int(x) for x in re.findall(r'\d+', approved_text))
+
+# Load gallery embeddings
+gallery_emb = np.load('gallery/client-review/data/gallery_embeddings.npy')
+conn = sqlite3.connect('gallery/client-review/data/embeddings.db')
+rows = conn.execute("SELECT id, embedding_idx FROM embedding_progress").fetchall()
+conn.close()
+id_to_idx = {r[0]: r[1] for r in rows}
+
+# Compute centroid
+seed_indices = [id_to_idx[aid] for aid in approved_ids if aid in id_to_idx]
+centroid = gallery_emb[seed_indices].mean(axis=0)
+centroid = centroid / np.linalg.norm(centroid)
+
+# Search in valid range (0-300K)
+full_emb = np.load('/Volumes/My Book/ImageSearch/data/embeddings.npy', mmap_mode='r')
+valid_emb = np.array(full_emb[:300000])
+# ... normalize and compute similarity ...
+```
+
+**Thresholds used:**
+- >= 0.85: High quality settlement images (957 found)
+- 0.80-0.85: Medium quality, borderline (3,993 found)
+- < 0.80: Not used (too much noise)
+
+## Settlement Gallery (Vercel)
+
+**Live:** https://village-gallery.vercel.app
+**Code:** `gallery/vercel-deploy/`
+
+**Features:**
+- 5,012 visible images (319 duplicates auto-hidden)
+- Sorted by semantic similarity to "settlement" query
+- Left-click = select, Right-click = modal
+- Bulk rating, hide, comments
+- Find duplicates (perceptual hash), Find similar
+
+**Supabase Backend:**
+- Project: `vlmtxakutftzftccizjf`
+- Table: `settlement_images`
+- Storage: `settlement-images` bucket
+
+**Data linking:**
+```
+original_path (unique key)
+    ↓
+gallery.db: semantic_score, rating, is_hidden
+    ↓
+hex_id = MD5(original_path)[:8]
+    ↓
+Supabase: semantic_score, rating, comment
+```
+
+**Deploy:**
+```bash
+cd gallery/vercel-deploy && vercel --prod --yes
+```
+
+## Embedding Regeneration
+
+**IMPORTANT:** The `embeddings.npy` file is corrupted. The `semantic_score` for settlement images is already saved and does NOT require embeddings.
+
+**Safe regeneration script:** `regenerate_embeddings_safe.py`
 
 ```bash
-# Stop all processing (safe anytime)
-pkill -f "cli.py" && pkill -f "compute_hashes" && pkill -f "live_dashboard"
+# Regenerate all embeddings (preserves ID order)
+python regenerate_embeddings_safe.py
 
-# Or use keyboard: Ctrl+C in terminal running the processes
+# Resume from last checkpoint
+python regenerate_embeddings_safe.py --resume
+
+# Custom batch size
+python regenerate_embeddings_safe.py --batch-size 64
 ```
 
-**✅ ALWAYS SAFE TO STOP:**
-- Database commits every 100 images
-- WAL mode ensures consistency
-- Smart scanner tracks progress
-- NO data will be lost!
+**How order is preserved:**
+- Index in `embeddings.npy` = image ID in database
+- Script processes images in `ORDER BY id`
+- Progress saved every 1000 images
+- Zero vectors for failed images (maintains alignment)
 
-### **How to Resume After Stopping:**
+**Data integrity:**
+| Data | Location | Needs Embeddings? |
+|------|----------|-------------------|
+| Settlement semantic_score | gallery.db, Supabase | No (already computed) |
+| Gallery ratings | Supabase | No |
+| Duplicate detection | perceptual hash | No |
+| New text searches | embeddings.npy | Yes |
+| New image searches | embeddings.npy | Yes |
 
-```bash
-# Resume everything
-./start_everything.sh
+## Lessons Learned (2026-02-02)
 
-# Or step by step:
-./restart_hash_computation.sh    # Hashing only
-./run_parallel_optimized.sh      # Registration + embeddings
-python3 live_dashboard.py &      # Dashboard
-```
+1. **Always verify index alignment** before trusting search results
+   - Test: compute fresh embedding, compare to stored (should be >0.95 similarity)
+   - Found that 300K-3.4M range is completely broken
 
-**What happens on resume:**
-- ✅ Skips already-registered images (smart scanner)
-- ✅ Skips images with hashes
-- ✅ Skips images with embeddings
-- ✅ Continues exactly where you left off
-- ✅ No duplicates possible (UNIQUE constraints)
+2. **Index bugs cause phantom results** - high similarity scores but wrong images displayed
 
----
+3. **mapping_info.json is unreliable** - said 0-350K is valid, actually only 0-300K works
 
-## ⚡ Caffeinate - MUST USE!
+4. **Seed-based search works well** when index is valid - found ~5K new settlement images
 
-**CRITICAL:** Always run caffeinate when processing overnight or away from computer!
-
-### **Start Caffeinate:**
-```bash
-# Prevent display sleep, system sleep, disk sleep, and idle
-caffeinate -dims &
-
-# Verify it's running
-ps aux | grep caffeinate | grep -v grep
-```
-
-### **Why It's Essential:**
-- ❌ Without: Mac sleeps → USB disconnects → processing stops → data corruption risk
-- ✅ With: Mac stays awake → processing continues → safe completion
-
-### **Caffeinate is Running If You See:**
-```bash
-aviz    50735   0.0  0.0  caffeinate -dims
-```
-
-### **Stop Caffeinate:**
-```bash
-# Find PID
-ps aux | grep caffeinate | grep -v grep
-
-# Kill it
-kill <PID>
-```
-
-**⚠️  ALWAYS start caffeinate before leaving computer unattended!**
-
----
-
-## 🔍 Search Demo - Test Similarity Search
-
-### **Text-to-Image Search:**
-```bash
-# Search by description
-python search_demo.py text "beach sunset ocean" -k 5
-
-# With Preview (opens results)
-python search_demo.py text "landscape mountains" -k 5 --open
-```
-
-### **Image-to-Image Search:**
-```bash
-# Find similar images
-python search_demo.py image "test_images/blue_01.jpg" -k 5
-
-# Open in Preview
-python search_demo.py image "/path/to/query.jpg" -k 10 --open
-```
-
-### **What It Does:**
-- ✅ Works with current 2,562 embeddings
-- ✅ Shows similarity scores (0-1, higher = more similar)
-- ✅ Regenerates embeddings on-the-fly (slow, for demo)
-- ✅ Opens results in Preview app (--open flag)
-- ⚠️  Full FAISS search available after processing completes
-
-### **Scores Meaning:**
-- **0.6-1.0:** Very similar (image search)
-- **0.3-0.6:** Moderately similar
-- **0.1-0.3:** Loosely related (text search)
-- **< 0.1:** Different content
-
-### **After Processing Completes:**
-```bash
-python cli.py save-embeddings   # Extract all embeddings
-python cli.py build-index       # Build FAISS index
-python cli.py search-text "sunset beach"
-python cli.py search-image query.jpg
-# → Search 3M images in milliseconds!
-```
-
----
-
-## ⚡ Parallel Embeddings (Active Since Nov 24, 2025)
-
-### **What's Running:**
-```
-✅ 3 Parallel Embedding Workers
-   - Worker 0 (PID 89126): Processes images where id % 3 = 0
-   - Worker 1 (PID 89132): Processes images where id % 3 = 1
-   - Worker 2 (PID 89146): Processes images where id % 3 = 2
-```
-
-### **Performance:**
-- **Single Worker:** ~4.5 img/sec → 10 days to complete
-- **3 Parallel Workers:** ~13.5 img/sec → ~3-4 days to complete
-- **Speedup:** 3× faster, saves ~6 days!
-
-### **How It Works:**
-Each worker processes a different subset of images using modulo partitioning:
-```sql
--- Worker 0 gets: ids 0, 3, 6, 9, 12, ...
-SELECT * FROM images WHERE embedding_index IS NULL AND id % 3 = 0
-
--- Worker 1 gets: ids 1, 4, 7, 10, 13, ...
-SELECT * FROM images WHERE embedding_index IS NULL AND id % 3 = 1
-
--- Worker 2 gets: ids 2, 5, 8, 11, 14, ...
-SELECT * FROM images WHERE embedding_index IS NULL AND id % 3 = 2
-```
-
-### **Why It's Safe:**
-- ✅ **No overlap:** Each worker processes different images
-- ✅ **WAL mode:** Multiple readers + one writer at a time
-- ✅ **No deadlocks:** 300-second timeout
-- ✅ **Resumable:** Workers skip already-processed images
-- ✅ **No duplicates:** UNIQUE constraints prevent conflicts
-
-### **Commands:**
-```bash
-# Start parallel workers
-./run_parallel_embeddings.sh
-
-# Monitor individual workers
-tail -f logs/embed_worker_0.log
-tail -f logs/embed_worker_1.log
-tail -f logs/embed_worker_2.log
-
-# Check if running
-ps -p 89126,89132,89146
-
-# Stop all workers
-kill 89126 89132 89146
-
-# Or kill by pattern
-pkill -f "generate_embeddings_parallel"
-```
-
-### **Timeline:**
-```
-Nov 24 (10:15 AM):  844K registered, 2.5K with embeddings, 3 workers started
-Nov 25-26:          ~2-2.5M registered, ~500K with embeddings
-Nov 27-28:          3.17M registered, 3.17M with embeddings ✅ COMPLETE
-```
-
----
-
-## 📊 Current Status (Nov 24, 2025 - 10:15 AM)
-
-### **Progress:**
-- **Registered:** 844,064 images (26.6%)
-- **With Embeddings:** 2,562 (being processed by 3 parallel workers)
-- **Waiting for Embeddings:** 842,802 images
-- **Failed:** 769 images
-- **Processing Rate:** 
-  - Registration: ~16 images/sec
-  - Embeddings: ~13.5 images/sec (3 workers combined)
-
-### **Running Processes:**
-```bash
-ps aux | grep -E "(cli.py|compute_hashes|live_dashboard|generate_embeddings)" | grep -v grep
-
-# Should see:
-# - 3× registration workers (D, E, F)
-# - 1× hash computation
-# - 3× embedding workers (parallel) ⚡ NEW!
-# - 1× dashboard
-# - 1× caffeinate (MUST!)
-```
-
-### **Timeline:** (Updated with 3 Parallel Workers ⚡)
-- **Registration:** ~1.5 days remaining (from Nov 24)
-- **Embeddings:** ~2.7 days (3 parallel workers @ 13.5 img/sec)
-- **Total:** ~3-4 days to completion
-- **Completion Date:** ~Nov 27-28, 2025 🎯
-- **Time Saved:** ~6 days faster than single worker!
-
-### **Database Safety:**
-- ✅ WAL mode (multiple readers + one writer)
-- ✅ UNIQUE constraints (no duplicates possible)
-- ✅ 300-second timeout (no deadlocks)
-- ✅ Batch commits (every 100 images)
-
----
-
-## 🎯 Quick Commands Reference
-
-```bash
-# Status
-./check_parallel_progress.sh
-./check_sha256_duplicates.sh
-open http://localhost:8888
-
-# Stop & Resume
-pkill -f "cli.py" && pkill -f "compute_hashes" && pkill -f "generate_embeddings"
-./start_everything.sh
-./run_parallel_embeddings.sh  # Start 3 parallel embedding workers ⚡
-
-# Caffeinate (CRITICAL!)
-caffeinate -dims &
-ps aux | grep caffeinate
-
-# Parallel Embeddings ⚡ NEW!
-./run_parallel_embeddings.sh                    # Start 3 workers
-ps -p 89126,89132,89146                         # Check if running
-tail -f logs/embed_worker_{0,1,2}.log          # Monitor workers
-kill 89126 89132 89146                          # Stop workers
-
-# Search Demo
-python search_demo.py text "beach sunset" -k 5 --open
-python search_demo.py image "path/to/image.jpg" -k 10 --open
-
-# Database Queries
-sqlite3 "/Volumes/My Book/images-finder-data/metadata.db" \
-  "SELECT COUNT(*), COUNT(embedding_index), COUNT(sha256_hash) FROM images"
-
-# Logs
-tail -f logs/process_D.log
-tail -f hash_computation.log
-tail -f dashboard.log
-tail -f logs/embed_worker_0.log  # Parallel embedding worker 0
-tail -f logs/embed_worker_1.log  # Parallel embedding worker 1
-tail -f logs/embed_worker_2.log  # Parallel embedding worker 2
-```
-
----
-
-**Remember:** 
-- 🛡️ User's priority is **NO DUPLICATES** and **SAFE RESUME** - both guaranteed!
-- ⚡ **ALWAYS use caffeinate** when leaving computer unattended!
-- 🔍 **Search demo** shows similarity search is working perfectly!
-
+5. **Save computed scores separately** - semantic_score stored in DB means regenerating embeddings doesn't lose gallery work
