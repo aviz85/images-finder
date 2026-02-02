@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement Gallery</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: #111;
+            padding: 12px 20px;
+            border-bottom: 1px solid #333;
+            z-index: 100;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header h1 { font-size: 1.1rem; color: #4CAF50; }
+
+        .stats {
+            background: #1a1a1a;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .stats span { color: #4CAF50; font-weight: bold; }
+        .stats .hidden-count { color: #f44336; margin-left: 10px; }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-right: auto;
+        }
+
+        select, input[type="text"], textarea {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        button {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        button:hover { background: #45a049; }
+        button.secondary { background: #333; }
+        button.secondary:hover { background: #444; }
+        button.danger { background: #f44336; }
+        button.danger:hover { background: #d32f2f; }
+
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #111;
+            border-bottom: 1px solid #333;
+        }
+        .search-bar input { flex: 1; max-width: 350px; }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            padding: 15px;
+        }
+
+        .card {
+            position: relative;
+            background: #151515;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .card:hover { border-color: #4CAF50; transform: translateY(-2px); }
+        .card.selected { border-color: #2196F3; box-shadow: 0 0 15px rgba(33,150,243,0.3); }
+        .card.hidden { opacity: 0.4; border-color: #f44336; }
+
+        .card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card .path-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent 0%, rgba(0,0,0,0.95) 40%);
+            padding: 30px 8px 8px;
+            font-size: 0.65rem;
+            color: #999;
+            direction: ltr;
+            text-align: left;
+            word-break: break-all;
+            line-height: 1.3;
+            max-height: 80px;
+            overflow: hidden;
+        }
+
+        .card .score-badge {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            background: rgba(76, 175, 80, 0.9);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .card .rating-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(0,0,0,0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #FFD700;
+        }
+
+        .card .hidden-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(244, 67, 54, 0.9);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .card .comment-indicator {
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(33, 150, 243, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .modal.active { display: flex; justify-content: center; align-items: flex-start; }
+
+        .modal-content {
+            background: #151515;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 900px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .modal-header h2 { color: #4CAF50; font-size: 1rem; }
+        .modal .close { font-size: 1.8rem; cursor: pointer; color: #666; }
+        .modal .close:hover { color: #fff; }
+
+        .modal-image {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .modal-image img {
+            max-width: 100%;
+            max-height: 45vh;
+            border-radius: 8px;
+        }
+
+        .modal-rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .modal-rating .star {
+            font-size: 1.8rem;
+            color: #444;
+            cursor: pointer;
+        }
+        .modal-rating .star:hover, .modal-rating .star.active { color: #FFD700; }
+        .modal-rating .hide-btn {
+            margin-left: 20px;
+            font-size: 0.9rem;
+        }
+
+        .modal-comment {
+            margin-bottom: 15px;
+        }
+        .modal-comment textarea {
+            width: 100%;
+            height: 60px;
+            resize: vertical;
+        }
+        .modal-comment .comment-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .modal-path {
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            direction: ltr;
+            text-align: left;
+        }
+        .modal-path .full {
+            font-family: monospace;
+            font-size: 0.8rem;
+            word-break: break-all;
+            color: #888;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .modal-path .full:hover { color: #4CAF50; }
+        .modal-path .folders {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .modal-path .folder {
+            background: #333;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .modal-path .folder:hover { background: #4CAF50; }
+
+        .modal-score {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            padding: 15px;
+            flex-wrap: wrap;
+        }
+        .pagination button { min-width: 36px; }
+        .pagination .current { background: #4CAF50; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            padding: 10px 20px;
+            border-radius: 6px;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #4CAF50; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .spinner {
+            border: 3px solid #333;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .bulk-bar {
+            display: none;
+            background: #2196F3;
+            padding: 8px 20px;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .bulk-bar.active { display: flex; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Settlement Gallery</h1>
+        <div class="stats">
+            <span id="total-count">0</span> images
+            <span class="hidden-count" id="hidden-count"></span>
+        </div>
+        <div class="controls">
+            <select id="sort-by">
+                <option value="distance">Sort: Distance (Best)</option>
+                <option value="distance-asc">Sort: Distance (Worst)</option>
+                <option value="rating">Sort: Rating</option>
+                <option value="filename">Sort: Filename</option>
+                <option value="path">Sort: Path</option>
+            </select>
+            <select id="filter-rating">
+                <option value="">All Visible</option>
+                <option value="5">5 Stars</option>
+                <option value="4">4+ Stars</option>
+                <option value="3">3+ Stars</option>
+                <option value="1">1+ Stars</option>
+                <option value="unrated">Unrated</option>
+                <option value="hidden">Hidden</option>
+                <option value="all">All (incl. hidden)</option>
+            </select>
+            <select id="per-page">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+            </select>
+            <button onclick="findDuplicates()" class="secondary">Find Duplicates</button>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search path or filename...">
+        <button id="search-btn">Search</button>
+        <button id="clear-btn" class="secondary">Clear</button>
+    </div>
+
+    <div class="bulk-bar" id="bulk-bar">
+        <span><b id="selected-count">0</b> selected</span>
+        <button onclick="bulkRate(5)">5★</button>
+        <button onclick="bulkRate(4)">4★</button>
+        <button onclick="bulkRate(3)">3★</button>
+        <button onclick="bulkRate(2)">2★</button>
+        <button onclick="bulkRate(1)">1★</button>
+        <button onclick="bulkReset()" class="secondary">Reset</button>
+        <button onclick="bulkHide()" class="danger">Hide</button>
+        <button onclick="clearSelection()" class="secondary">Cancel</button>
+    </div>
+
+    <div class="gallery" id="gallery"></div>
+    <div class="pagination" id="pagination"></div>
+    <div class="loading" id="loading"><div class="spinner"></div>Loading...</div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Image Details</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-image"><img id="modal-img" src=""></div>
+            <div class="modal-score" id="modal-score"></div>
+            <div class="modal-rating" id="modal-rating"></div>
+            <div class="modal-comment">
+                <textarea id="modal-comment" placeholder="Add a comment..."></textarea>
+                <div class="comment-actions">
+                    <button onclick="saveComment()">Save Comment</button>
+                </div>
+            </div>
+            <div class="modal-path">
+                <div class="full" id="modal-path-full" onclick="copyPath()"></div>
+                <div class="folders" id="modal-folders"></div>
+            </div>
+            <div class="modal-actions">
+                <button onclick="copyPath()">Copy Path</button>
+                <button onclick="findSimilar()" class="secondary">Find Similar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://vlmtxakutftzftccizjf.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsbXR4YWt1dGZ0emZ0Y2NpempmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNDg5ODUsImV4cCI6MjA3NzgyNDk4NX0.UpUHvRFIWu4bzweWY4CL47bmnIkWCiM9r-V6d5pwsgs';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let images = [];
+        let currentPage = 1;
+        let perPage = 100;
+        let totalCount = 0;
+        let currentImage = null;
+        let selectedIds = new Set();
+        let searchQuery = '';
+        let sortBy = 'distance';
+        let filterRating = '';
+
+        const gallery = document.getElementById('gallery');
+        const loading = document.getElementById('loading');
+        const modal = document.getElementById('modal');
+        const toast = document.getElementById('toast');
+        const bulkBar = document.getElementById('bulk-bar');
+
+        async function init() {
+            await loadStats();
+            await loadImages();
+            setupEvents();
+        }
+
+        function setupEvents() {
+            document.getElementById('sort-by').addEventListener('change', e => {
+                sortBy = e.target.value;
+                currentPage = 1;
+                loadImages();
+            });
+
+            document.getElementById('filter-rating').addEventListener('change', e => {
+                filterRating = e.target.value;
+                currentPage = 1;
+                loadImages();
+            });
+
+            document.getElementById('per-page').addEventListener('change', e => {
+                perPage = parseInt(e.target.value);
+                currentPage = 1;
+                loadImages();
+            });
+
+            document.getElementById('search-btn').addEventListener('click', doSearch);
+            document.getElementById('search-input').addEventListener('keypress', e => {
+                if (e.key === 'Enter') doSearch();
+            });
+
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                document.getElementById('search-input').value = '';
+                searchQuery = '';
+                currentPage = 1;
+                loadImages();
+            });
+
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') closeModal();
+            });
+
+            gallery.addEventListener('contextmenu', e => e.preventDefault());
+        }
+
+        function getThumbnailUrl(img) {
+            if (img.storage_path) {
+                return `${SUPABASE_URL}/storage/v1/object/public/settlement-images/${img.storage_path}`;
+            }
+            return '';
+        }
+
+        async function loadStats() {
+            const { count: total } = await db.from('settlement_images').select('*', { count: 'exact', head: true });
+            const { count: hidden } = await db.from('settlement_images').select('*', { count: 'exact', head: true }).eq('rating', -1);
+            document.getElementById('total-count').textContent = total || 0;
+            document.getElementById('hidden-count').textContent = hidden ? `(${hidden} hidden)` : '';
+        }
+
+        async function loadImages() {
+            loading.style.display = 'block';
+            gallery.innerHTML = '';
+
+            let query = db.from('settlement_images').select('*', { count: 'exact' });
+
+            // Filter
+            if (filterRating === 'hidden') {
+                query = query.eq('rating', -1);
+            } else if (filterRating === 'unrated') {
+                query = query.is('rating', null);
+            } else if (filterRating === 'all') {
+                // No filter
+            } else if (filterRating) {
+                query = query.gte('rating', parseInt(filterRating));
+            } else {
+                // Default: exclude hidden
+                query = query.or('rating.is.null,rating.gte.0');
+            }
+
+            // Search
+            if (searchQuery) {
+                query = query.or(`original_path.ilike.%${searchQuery}%,filename.ilike.%${searchQuery}%`);
+            }
+
+            // Sort
+            if (sortBy === 'distance') {
+                query = query.order('semantic_score', { ascending: false, nullsFirst: false });
+            } else if (sortBy === 'distance-asc') {
+                query = query.order('semantic_score', { ascending: true, nullsFirst: true });
+            } else if (sortBy === 'rating') {
+                query = query.order('rating', { ascending: false, nullsFirst: true });
+            } else if (sortBy === 'filename') {
+                query = query.order('filename', { ascending: true });
+            } else if (sortBy === 'path') {
+                query = query.order('original_path', { ascending: true });
+            }
+
+            const from = (currentPage - 1) * perPage;
+            let { data, count, error } = await query.range(from, from + perPage - 1);
+
+            if (error && error.message.includes('semantic_score')) {
+                showToast('Distance sorting not available', '');
+                sortBy = 'filename';
+                document.getElementById('sort-by').value = 'filename';
+                return loadImages();
+            }
+
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                loading.style.display = 'none';
+                return;
+            }
+
+            images = data || [];
+            totalCount = count || 0;
+            renderGallery();
+            renderPagination();
+            loading.style.display = 'none';
+        }
+
+        function renderGallery() {
+            gallery.innerHTML = images.map(img => {
+                const path = img.original_path || '';
+                const shortPath = path.length > 100 ? '...' + path.slice(-100) : path;
+                const score = img.semantic_score ? (img.semantic_score * 100).toFixed(1) + '%' : '';
+                const rating = img.rating && img.rating > 0 && img.rating <= 5 ? '★'.repeat(img.rating) : '';
+                const isHidden = img.rating === -1;
+                const hasComment = img.comment && img.comment.trim();
+
+                return `
+                <div class="card ${selectedIds.has(img.id) ? 'selected' : ''} ${isHidden ? 'hidden' : ''}"
+                     data-id="${img.id}"
+                     onclick="handleClick(event, '${img.id}')"
+                     oncontextmenu="openModal('${img.id}'); return false;">
+                    <img src="${getThumbnailUrl(img)}" loading="lazy">
+                    ${score ? `<div class="score-badge">${score}</div>` : ''}
+                    ${rating ? `<div class="rating-badge">${rating}</div>` : ''}
+                    ${isHidden ? `<div class="hidden-badge">HIDDEN</div>` : ''}
+                    ${hasComment ? `<div class="comment-indicator">💬</div>` : ''}
+                    <div class="path-overlay">${shortPath}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(totalCount / perPage);
+            if (totalPages <= 1) {
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // Previous button (> in RTL)
+            if (currentPage > 1) html += `<button onclick="goToPage(${currentPage-1})">▶</button>`;
+
+            // First page
+            if (currentPage > 3) {
+                html += `<button onclick="goToPage(1)">1</button>`;
+                if (currentPage > 4) html += '<span>...</span>';
+            }
+
+            // Page numbers around current
+            const start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages, currentPage + 2);
+            for (let i = start; i <= end; i++) {
+                html += `<button class="${i === currentPage ? 'current' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            // Last page
+            if (currentPage < totalPages - 2) {
+                if (currentPage < totalPages - 3) html += '<span>...</span>';
+                html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            // Next button (< in RTL)
+            if (currentPage < totalPages) html += `<button onclick="goToPage(${currentPage+1})">◀</button>`;
+
+            // Page jump dropdown
+            html += `<select onchange="goToPage(parseInt(this.value))" style="margin-right:10px;">`;
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<option value="${i}" ${i === currentPage ? 'selected' : ''}>Page ${i}</option>`;
+            }
+            html += `</select>`;
+
+            document.getElementById('pagination').innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            loadImages();
+            window.scrollTo(0, 0);
+        }
+
+        function doSearch() {
+            searchQuery = document.getElementById('search-input').value.trim();
+            currentPage = 1;
+            loadImages();
+        }
+
+        function handleClick(event, id) {
+            // Left click = select/deselect
+            if (selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+            updateBulkBar();
+            renderGallery();
+        }
+
+        function openModal(id) {
+            const img = images.find(i => i.id === id);
+            if (!img) return;
+
+            currentImage = img;
+            document.getElementById('modal-img').src = getThumbnailUrl(img);
+
+            const path = img.original_path || '';
+            document.getElementById('modal-path-full').textContent = path;
+
+            const folders = path.split('/').filter(f => f && !f.includes('.'));
+            document.getElementById('modal-folders').innerHTML = folders.map(f =>
+                `<span class="folder" onclick="searchFolder('${f}')">${f}</span>`
+            ).join('');
+
+            const score = img.semantic_score ? `Similarity: ${(img.semantic_score * 100).toFixed(1)}%` : '';
+            document.getElementById('modal-score').textContent = score;
+
+            document.getElementById('modal-comment').value = img.comment || '';
+
+            renderModalRating(img.rating || 0);
+            modal.classList.add('active');
+        }
+
+        function renderModalRating(rating) {
+            const isHidden = rating === -1;
+            document.getElementById('modal-rating').innerHTML =
+                [1,2,3,4,5].map(n =>
+                    `<span class="star ${!isHidden && rating >= n ? 'active' : ''}" onclick="setRating(${n})">★</span>`
+                ).join('') +
+                `<button class="secondary" onclick="resetRating()" style="margin-left:10px;">Reset</button>` +
+                `<button class="hide-btn ${isHidden ? 'danger' : 'secondary'}" onclick="toggleHide()">${isHidden ? 'Unhide' : 'Hide'}</button>`;
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            currentImage = null;
+        }
+
+        async function setRating(rating) {
+            if (!currentImage) return;
+            const { error } = await db.from('settlement_images').update({ rating }).eq('id', currentImage.id);
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                return;
+            }
+            currentImage.rating = rating;
+            const img = images.find(i => i.id === currentImage.id);
+            if (img) img.rating = rating;
+            renderModalRating(rating);
+            renderGallery();
+            loadStats();
+            showToast(`Rated ${rating}★`, 'success');
+        }
+
+        async function resetRating() {
+            if (!currentImage) return;
+            const { error } = await db.from('settlement_images').update({ rating: null }).eq('id', currentImage.id);
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                return;
+            }
+            currentImage.rating = null;
+            const img = images.find(i => i.id === currentImage.id);
+            if (img) img.rating = null;
+            renderModalRating(0);
+            renderGallery();
+            loadStats();
+            showToast('Rating reset', 'success');
+        }
+
+        async function toggleHide() {
+            if (!currentImage) return;
+            const newRating = currentImage.rating === -1 ? null : -1;
+            const { error } = await db.from('settlement_images').update({ rating: newRating }).eq('id', currentImage.id);
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                return;
+            }
+            currentImage.rating = newRating;
+            const img = images.find(i => i.id === currentImage.id);
+            if (img) img.rating = newRating;
+            renderModalRating(newRating);
+            renderGallery();
+            loadStats();
+            showToast(newRating === -1 ? 'Hidden' : 'Unhidden', 'success');
+        }
+
+        async function saveComment() {
+            if (!currentImage) return;
+            const comment = document.getElementById('modal-comment').value.trim();
+            const { error } = await db.from('settlement_images').update({ comment }).eq('id', currentImage.id);
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                return;
+            }
+            currentImage.comment = comment;
+            const img = images.find(i => i.id === currentImage.id);
+            if (img) img.comment = comment;
+            renderGallery();
+            showToast('Comment saved', 'success');
+        }
+
+        function copyPath() {
+            if (!currentImage) return;
+            navigator.clipboard.writeText(currentImage.original_path);
+            showToast('Path copied!', 'success');
+        }
+
+        function searchFolder(name) {
+            document.getElementById('search-input').value = name;
+            closeModal();
+            doSearch();
+        }
+
+        async function findSimilar() {
+            if (!currentImage || !currentImage.semantic_score) {
+                showToast('No similarity score available', '');
+                return;
+            }
+            const score = currentImage.semantic_score;
+            const delta = 0.005; // 0.5% range
+            closeModal();
+
+            // Find images with very similar scores
+            loading.style.display = 'block';
+            const { data, error } = await db.from('settlement_images')
+                .select('*')
+                .gte('semantic_score', score - delta)
+                .lte('semantic_score', score + delta)
+                .order('semantic_score', { ascending: false })
+                .limit(50);
+
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                loading.style.display = 'none';
+                return;
+            }
+
+            images = data || [];
+            totalCount = images.length;
+            renderGallery();
+            document.getElementById('pagination').innerHTML = '';
+            loading.style.display = 'none';
+            showToast(`Found ${images.length} similar images`, 'success');
+        }
+
+        async function findDuplicates() {
+            showToast('Finding duplicates by filename...', '');
+            loading.style.display = 'block';
+
+            // Get all images
+            const { data, error } = await db.from('settlement_images')
+                .select('id,filename,semantic_score')
+                .or('rating.is.null,rating.gte.0')
+                .order('filename');
+
+            if (error) {
+                showToast('Error: ' + error.message, '');
+                loading.style.display = 'none';
+                return;
+            }
+
+            // Group by filename
+            const groups = {};
+            data.forEach(img => {
+                const base = img.filename.replace(/\.[^/.]+$/, '').toLowerCase();
+                if (!groups[base]) groups[base] = [];
+                groups[base].push(img);
+            });
+
+            // Find duplicates and mark lower-scored ones as hidden
+            let hiddenCount = 0;
+            for (const [name, imgs] of Object.entries(groups)) {
+                if (imgs.length > 1) {
+                    // Sort by score descending, keep the best one
+                    imgs.sort((a, b) => (b.semantic_score || 0) - (a.semantic_score || 0));
+                    const toHide = imgs.slice(1).map(i => i.id);
+                    if (toHide.length > 0) {
+                        await db.from('settlement_images').update({ rating: -1 }).in('id', toHide);
+                        hiddenCount += toHide.length;
+                    }
+                }
+            }
+
+            loading.style.display = 'none';
+            await loadStats();
+            await loadImages();
+            showToast(`Hid ${hiddenCount} duplicate images`, 'success');
+        }
+
+        function updateBulkBar() {
+            document.getElementById('selected-count').textContent = selectedIds.size;
+            bulkBar.classList.toggle('active', selectedIds.size > 0);
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            updateBulkBar();
+            renderGallery();
+        }
+
+        async function bulkRate(rating) {
+            if (!selectedIds.size) return;
+            const ids = Array.from(selectedIds);
+            await db.from('settlement_images').update({ rating }).in('id', ids);
+            images.forEach(img => { if (selectedIds.has(img.id)) img.rating = rating; });
+            clearSelection();
+            loadStats();
+            showToast(`Rated ${ids.length} images`, 'success');
+        }
+
+        async function bulkReset() {
+            if (!selectedIds.size) return;
+            const ids = Array.from(selectedIds);
+            await db.from('settlement_images').update({ rating: null }).in('id', ids);
+            images.forEach(img => { if (selectedIds.has(img.id)) img.rating = null; });
+            clearSelection();
+            loadStats();
+            showToast(`Reset ${ids.length} images`, 'success');
+        }
+
+        async function bulkHide() {
+            if (!selectedIds.size) return;
+            const ids = Array.from(selectedIds);
+            await db.from('settlement_images').update({ rating: -1 }).in('id', ids);
+            images.forEach(img => { if (selectedIds.has(img.id)) img.rating = -1; });
+            clearSelection();
+            loadStats();
+            renderGallery();
+            showToast(`Hid ${ids.length} images`, 'success');
+        }
+
+        function showToast(msg, type) {
+            toast.textContent = msg;
+            toast.className = 'toast show ' + (type || '');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        init();
+    </script>
+</body>
+</html>
