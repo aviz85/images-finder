@@ -55,9 +55,7 @@ PIDS=()
 
 for ((i=0; i<$NUM_WORKERS; i++)); do
     echo "Starting Worker $((i+1)) (id % $NUM_WORKERS = $i)..."
-    # Use 'nice' to lower priority (19 = lowest, won't interfere with user work)
-    # Use 'nohup' to run in background
-    nice -n 19 nohup "$VENV_PYTHON" -c "
+    nohup "$VENV_PYTHON" -c "
 import sys
 sys.path.insert(0, '$BASE_DIR')
 from pathlib import Path
@@ -71,7 +69,7 @@ pipeline.generate_embeddings_parallel(worker_id=$i, num_workers=$NUM_WORKERS, re
     
     PID=$!
     PIDS+=($PID)
-    echo "  Worker $((i+1)) started (PID: $PID, nice priority: 19)"
+    echo "  Worker $((i+1)) started (PID: $PID)"
     sleep 2
 done
 

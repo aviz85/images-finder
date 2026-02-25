@@ -186,17 +186,14 @@ class IndexingPipeline:
         logger.info(f"Worker {worker_id}: Processing {total} images in batches of {self.config.batch_size}")
         logger.info(f"Worker {worker_id}: Device: {self.config.device} | Model: {self.config.model_name}")
 
-        # Recover any orphaned temp files from previous runs
-        from src.embedding_storage import save_embeddings_incremental, recover_orphaned_temp_files
-        recovered = recover_orphaned_temp_files(self.config.embeddings_path)
-        if recovered > 0:
-            logger.info(f"Worker {worker_id}: Recovered {recovered} embeddings from orphaned temp files")
-
         all_embeddings = []
         all_indices = []  # Store embedding indices for each embedding
         processed = 0
         failed = 0
         start_time = time.time()
+
+        # Import thread-safe save function
+        from src.embedding_storage import save_embeddings_incremental
 
         # Process in batches
         batch_images = []
@@ -253,18 +250,16 @@ class IndexingPipeline:
                     # Commit entire batch as one transaction (thread-safe)
                     self.db.commit()
 
-                    # CRITICAL: Save embeddings to disk IMMEDIATELY (incremental, thread-safe with safe buffer)
+                    # CRITICAL: Save embeddings to disk IMMEDIATELY (incremental, thread-safe)
                     try:
                         save_embeddings_incremental(
                             embeddings_path=self.config.embeddings_path,
                             new_embeddings=embeddings,
-                            embedding_indices=batch_indices,
-                            worker_id=worker_id
+                            embedding_indices=batch_indices
                         )
                     except Exception as save_error:
-                        logger.error(f"Worker {worker_id}: CRITICAL - Failed to save embeddings (even to temp file): {save_error}")
-                        # This is serious - even temp file save failed
-                        # Continue processing but log error
+                        logger.error(f"Worker {worker_id}: Failed to save embeddings: {save_error}")
+                        # Continue processing even if save fails - will retry later
 
                     all_embeddings.append(embeddings)
                     all_indices.extend(batch_indices)

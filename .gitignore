@@ -69,7 +69,37 @@ count_*.txt
 # Scan cache
 .images-finder/
 
-# Embedding temp files (safe buffer)
-embeddings_temp/
-*.npy.lock
-data/embeddings_temp/
+# Large generated HTML review files
+*_selection.html
+*_verify.html
+*_settlements.html
+*_candidates.html
+mark_*.html
+verify_*.html
+remove_*.html
+settlement_preview.html
+similarity_*.html
+search_results*.html
+full_database_*.html
+random_*.html
+valid_verified_*.html
+verified_*.html
+
+# Large text/data files
+landscape_FULL.txt
+village_landscape_*.txt
+*_candidates.json
+debug_search_issue.md
+
+# Claude Code - ignore sensitive, allow skills
+.claude/projects/
+.claude/settings.local.json
+.claude/skills/*/scripts/.env
+.claude/skills/*/scripts/.env.*
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+.env

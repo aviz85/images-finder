@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Refined Search - 300 more candidates</title>
+    <style>
+        body { font-family: Arial; background: #1a1a1a; color: white; padding: 20px; }
+        h1 { text-align: center; }
+        .stats { text-align: center; margin: 20px; padding: 15px; background: #333; border-radius: 8px; font-size: 18px; }
+        .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 200px; }
+        .item { position: relative; cursor: pointer; border: 3px solid #444; border-radius: 8px; overflow: hidden; }
+        .item.selected { border-color: #00ff00; }
+        .item.rejected { border-color: #ff0000; opacity: 0.3; }
+        .item img { width: 100%; display: block; }
+        .item .info { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 3px; font-size: 10px; }
+        .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; border-top: 2px solid #444; z-index: 100; }
+        .controls button { padding: 12px 20px; margin: 5px; cursor: pointer; font-size: 14px; border: none; border-radius: 5px; }
+        .results-row { display: flex; gap: 20px; margin-top: 10px; }
+        .results-box { flex: 1; }
+        .results-box h4 { margin: 5px 0; }
+        .results-box textarea { width: 100%; height: 60px; font-size: 11px; background: #333; color: white; border: 1px solid #555; }
+        #count { color: #00ff00; }
+        #rejCount { color: #ff6666; }
+    </style>
+</head>
+<body>
+    <h1>🏘️ Refined Search - 300 More Candidates</h1>
+    <div class="stats">
+        Already approved: 110 | ✅ New selected: <span id="count">0</span> | ❌ Rejected: <span id="rejCount">0</span>
+    </div>
+    <div class="grid">
+
+        <div class="item" data-id="10296" onclick="toggle(this)">
+            <img src="thumbnails/cbeaecb0bc515a60ef55902303beafee.jpg" loading="lazy">
+            <div class="info">score:0.49</div>
+        </div>
+
+        <div class="item" data-id="2671" onclick="toggle(this)">
+            <img src="thumbnails/7d23ea37b4b931279b873122e88a5b03.jpg" loading="lazy">
+            <div class="info">score:0.48</div>
+        </div>
+
+        <div class="item" data-id="9888" onclick="toggle(this)">
+            <img src="thumbnails/382631ccc94dc746f103e067ea7184bc.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="13081" onclick="toggle(this)">
+            <img src="thumbnails/a91012b0f721792075d0b4d112656879.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="4752" onclick="toggle(this)">
+            <img src="thumbnails/955b7c31ac01a59d31133ff37dfd7015.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="8912" onclick="toggle(this)">
+            <img src="thumbnails/4438dc478771c1348a8ee2b0152f6529.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="4156" onclick="toggle(this)">
+            <img src="thumbnails/2feb913602fde48d7a4262df69ce22ea.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="855" onclick="toggle(this)">
+            <img src="thumbnails/08ccbac61f5c50d1d2964a17616be933.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="13021" onclick="toggle(this)">
+            <img src="thumbnails/d12908b48d7686721c4b40c712a7863b.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="6044" onclick="toggle(this)">
+            <img src="thumbnails/6b7ffcae17076445ec2ca70d76b117a6.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="7140" onclick="toggle(this)">
+            <img src="thumbnails/ba9ca1dd74254e16be5e706ea4becdab.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="6143" onclick="toggle(this)">
+            <img src="thumbnails/53d1a2c1fdd2dbee25a314155e81910a.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="12025" onclick="toggle(this)">
+            <img src="thumbnails/2f7ff6deb8424f22bd4aab4b6f81ea7d.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="7879" onclick="toggle(this)">
+            <img src="thumbnails/6a932599294c66af708c7add8ff3295e.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="9968" onclick="toggle(this)">
+            <img src="thumbnails/d6d08a5cab36af75a72fbe8e4ebd637d.jpg" loading="lazy">
+            <div class="info">score:0.47</div>
+        </div>
+
+        <div class="item" data-id="9385" onclick="toggle(this)">
+            <img src="thumbnails/54e7abed9fc9f4e38428f7358e763b30.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="2810" onclick="toggle(this)">
+            <img src="thumbnails/4d0f0fa405c750af523008cc54bffbd7.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="5352" onclick="toggle(this)">
+            <img src="thumbnails/c5ba79986d000cd1c3524bcbfceac32f.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="12594" onclick="toggle(this)">
+            <img src="thumbnails/17f5017c0cd2f10fb2fb1ecc2020ba41.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="3748" onclick="toggle(this)">
+            <img src="thumbnails/7f0151fbcf9cbcefd565ff1ab560f86a.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="10334" onclick="toggle(this)">
+            <img src="thumbnails/a483a8d138f865f8f6f6636f5e4cce07.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="9892" onclick="toggle(this)">
+            <img src="thumbnails/cfe31fec8e49155f73e29e6a3b38a5ef.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="7780" onclick="toggle(this)">
+            <img src="thumbnails/35de159d09e7823629069415f391637f.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="11964" onclick="toggle(this)">
+            <img src="thumbnails/3474bf8fb09913071fa928bbd0a3eabe.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="7692" onclick="toggle(this)">
+            <img src="thumbnails/c95f9b57653c643d5d9e90710aca48ae.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="4426" onclick="toggle(this)">
+            <img src="thumbnails/53472718647854150d65f299f5e4e951.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="1895" onclick="toggle(this)">
+            <img src="thumbnails/6209e7bcaecef5a6db7075ede621190d.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="7316" onclick="toggle(this)">
+            <img src="thumbnails/dff171b59e84efa40255d7ee43e96e97.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="10341" onclick="toggle(this)">
+            <img src="thumbnails/b3dc9412cea66948b3e43f0d43d72b0b.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="6609" onclick="toggle(this)">
+            <img src="thumbnails/348fe3e566d5d69bb6434022ec074b03.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="2067" onclick="toggle(this)">
+            <img src="thumbnails/6cfba0534ae0ee882682936c9a293ff4.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="1424" onclick="toggle(this)">
+            <img src="thumbnails/280421c686cc705a459693056da89d00.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="9965" onclick="toggle(this)">
+            <img src="thumbnails/0ba437c7a1c099433c116434779a9989.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="11005" onclick="toggle(this)">
+            <img src="thumbnails/3726eb2eef7891034c0f7e06d77a290a.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="10928" onclick="toggle(this)">
+            <img src="thumbnails/5de6a035e98f951a30fdde696dfbfd8a.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="1087" onclick="toggle(this)">
+            <img src="thumbnails/2bd14662cee55a578e9712926607700f.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="2845" onclick="toggle(this)">
+            <img src="thumbnails/4b0d7c4c7b67378d304b15123b36aaac.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="8240" onclick="toggle(this)">
+            <img src="thumbnails/827ec217f7b968770e6d0bf380d275f0.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="8298" onclick="toggle(this)">
+            <img src="thumbnails/8edbb5f6e228e48ad6f273efab0cf9ee.jpg" loading="lazy">
+            <div class="info">score:0.46</div>
+        </div>
+
+        <div class="item" data-id="8576" onclick="toggle(this)">
+            <img src="thumbnails/a4e3c625674eaf861cac27a909fca53e.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="11781" onclick="toggle(this)">
+            <img src="thumbnails/e709adb90a1673e5f7555580835ef02a.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="10723" onclick="toggle(this)">
+            <img src="thumbnails/4d04889f4963fc38693bad1b6b813428.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="6705" onclick="toggle(this)">
+            <img src="thumbnails/30622963e6a6cef7944675a2149688dc.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1101" onclick="toggle(this)">
+            <img src="thumbnails/38595cd7740484a8bbd5c4d837e9c84e.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="10657" onclick="toggle(this)">
+            <img src="thumbnails/0ee1350960fbd5fcbf95c25dba67049c.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="7582" onclick="toggle(this)">
+            <img src="thumbnails/4327d7488d1fd5e08c507740c08c3543.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2165" onclick="toggle(this)">
+            <img src="thumbnails/a0ba0bc81ffa6ea75eedfb4d9a154a69.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="10819" onclick="toggle(this)">
+            <img src="thumbnails/9640ba6c1986b03cf7494344ef455e13.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="8328" onclick="toggle(this)">
+            <img src="thumbnails/1e1ed1e35a92ef6b3e833a7ff7d7b0a6.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="7531" onclick="toggle(this)">
+            <img src="thumbnails/91e00cbb166bfc2559f1d5137bd87523.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="6660" onclick="toggle(this)">
+            <img src="thumbnails/e497dce6fe5737ec19cbb129835e656e.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="5709" onclick="toggle(this)">
+            <img src="thumbnails/7ab90ba1163ffc42ebf2eaef5409bb0e.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="13250" onclick="toggle(this)">
+            <img src="thumbnails/39b67347c60631c18b7ed036f173240f.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="6187" onclick="toggle(this)">
+            <img src="thumbnails/dc6405b12e030ff22e229b8776640359.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2196" onclick="toggle(this)">
+            <img src="thumbnails/264bc5684f7861356276a879c8a20a08.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="10778" onclick="toggle(this)">
+            <img src="thumbnails/7ebc6fedfda984bbdf3bd7475a1b9c5e.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="4395" onclick="toggle(this)">
+            <img src="thumbnails/7a2b0d1d4af55ca3c788a82a4d475dce.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1115" onclick="toggle(this)">
+            <img src="thumbnails/49134401e38f859cea3f5a88caa658c0.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="4402" onclick="toggle(this)">
+            <img src="thumbnails/596949269997afc1d59e7d540217d99e.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1930" onclick="toggle(this)">
+            <img src="thumbnails/72ef9338256563c5717f88521d04a47a.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="9199" onclick="toggle(this)">
+            <img src="thumbnails/b8c7f6c8dda370713122f80f3977cb6c.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2496" onclick="toggle(this)">
+            <img src="thumbnails/cdbd96fb4c2e901eab09423b54df2d71.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1243" onclick="toggle(this)">
+            <img src="thumbnails/7bb1643a390aad5ef50666c667dcc3a0.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="10479" onclick="toggle(this)">
+            <img src="thumbnails/5324f4c115e0727e36f6de8980f7d953.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="169" onclick="toggle(this)">
+            <img src="thumbnails/c483bac59ee381c0678932abaa2e3756.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="9944" onclick="toggle(this)">
+            <img src="thumbnails/ef14cd93f456bf5e35d8b5e358ea7617.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="8681" onclick="toggle(this)">
+            <img src="thumbnails/6ae60e4db1390b921658113549c30359.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="13004" onclick="toggle(this)">
+            <img src="thumbnails/9152c4c35df273ac2fc56940fbb20fd3.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="5031" onclick="toggle(this)">
+            <img src="thumbnails/1c82fd9ff51c29b08ca48a89ba999ba0.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="9851" onclick="toggle(this)">
+            <img src="thumbnails/04cb47a13cf8e3f363ec0b7c88b50129.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="11895" onclick="toggle(this)">
+            <img src="thumbnails/312f82a46a8afc4c412838a72f62b9be.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="4317" onclick="toggle(this)">
+            <img src="thumbnails/44ccb2ab5ae1746c6c99d324d25f64c4.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="10577" onclick="toggle(this)">
+            <img src="thumbnails/0ccb36fab24ea2d9d4f8e4e8ee7a5769.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2398" onclick="toggle(this)">
+            <img src="thumbnails/129740fbd21ffdef9896a911831bb056.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2771" onclick="toggle(this)">
+            <img src="thumbnails/7c1cf95881172e27d72a05139cadf6bf.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="4423" onclick="toggle(this)">
+            <img src="thumbnails/80c17c6073fcb35a8a0032289c2806dd.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2995" onclick="toggle(this)">
+            <img src="thumbnails/919f301035f9c5da9e318802fc2a2574.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="2101" onclick="toggle(this)">
+            <img src="thumbnails/78ab1b5e18cda56d2f8ad5420c83a13f.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1095" onclick="toggle(this)">
+            <img src="thumbnails/c0f8b44e58051d2793571c95ecdf6624.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="3564" onclick="toggle(this)">
+            <img src="thumbnails/956c97ebdb8850721e89ca34472296b8.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1850" onclick="toggle(this)">
+            <img src="thumbnails/01653a21b65328b5a09782ff3470a952.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="9493" onclick="toggle(this)">
+            <img src="thumbnails/42df4928a2ea375d13a86e23c74c41e7.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="5459" onclick="toggle(this)">
+            <img src="thumbnails/e420a91dada9af1bbc0b410fe98e0dad.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1574" onclick="toggle(this)">
+            <img src="thumbnails/635687e5c71558fd3ad3debbf0e5d89c.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="6113" onclick="toggle(this)">
+            <img src="thumbnails/30a133a485cdaf9006695fd33bad1f7a.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="243" onclick="toggle(this)">
+            <img src="thumbnails/c4efe48e25fe5853f53660ce9238d3b0.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="6568" onclick="toggle(this)">
+            <img src="thumbnails/18e3c40108efd0b81c112d8c3ea628db.jpg" loading="lazy">
+            <div class="info">score:0.45</div>
+        </div>
+
+        <div class="item" data-id="1303" onclick="toggle(this)">
+            <img src="thumbnails/c671f5e89c71117fd350619e54334352.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="6947" onclick="toggle(this)">
+            <img src="thumbnails/4f51b78184ea937d72bee21ceaa6f1d9.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="659" onclick="toggle(this)">
+            <img src="thumbnails/d3f72dc7a38d60b81ff8278f15ac1b01.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="7169" onclick="toggle(this)">
+            <img src="thumbnails/b50257d190ac76fbee4864b62f384ee1.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="3830" onclick="toggle(this)">
+            <img src="thumbnails/17c3f76163c4a7ce0bccb72309045596.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="9072" onclick="toggle(this)">
+            <img src="thumbnails/00690ea75d150cb130d433bea137d792.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="2998" onclick="toggle(this)">
+            <img src="thumbnails/3e2d0954da191f3ed881c9f4292ae8bd.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="10350" onclick="toggle(this)">
+            <img src="thumbnails/b363523b4ac7c608b4dbd53b72217d1a.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="8599" onclick="toggle(this)">
+            <img src="thumbnails/fb0fd8bf438f6c9d33d6f6f84e9659c6.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="12140" onclick="toggle(this)">
+            <img src="thumbnails/94a92f75274517dc2a29bba229026cf0.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="1706" onclick="toggle(this)">
+            <img src="thumbnails/e8b0704e1c025683238b95502d0b1769.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="10739" onclick="toggle(this)">
+            <img src="thumbnails/ee37ae45203abcade341c2f3b63a5628.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="320" onclick="toggle(this)">
+            <img src="thumbnails/c9d31009e0cabd59d0bb382fb497ffdc.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="6439" onclick="toggle(this)">
+            <img src="thumbnails/9abf492e96ff27337a88a24d2be05dc4.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="6458" onclick="toggle(this)">
+            <img src="thumbnails/07b7a4723df6f2d34d2633edd116f292.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="4449" onclick="toggle(this)">
+            <img src="thumbnails/63e66b042b2704c948b8744005a13e31.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="9868" onclick="toggle(this)">
+            <img src="thumbnails/986807d5afc7d2df4e575820f42eb473.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="4663" onclick="toggle(this)">
+            <img src="thumbnails/84c494fab770065029457b0d77caff82.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="7957" onclick="toggle(this)">
+            <img src="thumbnails/25e42fa4b4e329c7bb15be9adc341f65.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="11025" onclick="toggle(this)">
+            <img src="thumbnails/dee5394fc69860a78b8f0d2f2e5967b5.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="9042" onclick="toggle(this)">
+            <img src="thumbnails/cc05d35cadab246d665adc1e055b37fc.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="11272" onclick="toggle(this)">
+            <img src="thumbnails/87d3ce333a9d691b1254f2e151405952.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="585" onclick="toggle(this)">
+            <img src="thumbnails/30508c1321a1b1257d13f8d7a92084fb.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="7035" onclick="toggle(this)">
+            <img src="thumbnails/c397b51bbce12a4cf8a3b5452551120c.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="7180" onclick="toggle(this)">
+            <img src="thumbnails/bf2291ea76c12db233925f5cb1cc55d4.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="11777" onclick="toggle(this)">
+            <img src="thumbnails/e7d8b4fe6cf4e0924408e6f789c5c3f1.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="338" onclick="toggle(this)">
+            <img src="thumbnails/4e7cbb59c09c7a171c033f67e66b12cb.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="1538" onclick="toggle(this)">
+            <img src="thumbnails/7c97b4b69d73ddc6bb54116252b799e1.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="5678" onclick="toggle(this)">
+            <img src="thumbnails/8eb4461647bcc77133270e741c78fe8c.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="5275" onclick="toggle(this)">
+            <img src="thumbnails/650eecdb7faa0abdda6843662ac2c7bd.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="6978" onclick="toggle(this)">
+            <img src="thumbnails/8c2f57a3cf9feff6fd54a31b3b1493f4.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="762" onclick="toggle(this)">
+            <img src="thumbnails/fceb8d390671b14cde6548199ac6eae8.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="8300" onclick="toggle(this)">
+            <img src="thumbnails/2fa812a377f0da0088ec068b9d92697e.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="13002" onclick="toggle(this)">
+            <img src="thumbnails/b6cba334554247f88b860e0b8fd90b90.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="13049" onclick="toggle(this)">
+            <img src="thumbnails/88994faf896c3867cfa66110086fb44d.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="12235" onclick="toggle(this)">
+            <img src="thumbnails/07034aff85af119ec700094efe85ae52.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="5896" onclick="toggle(this)">
+            <img src="thumbnails/29662da056624f890add60b1b5f74894.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="4773" onclick="toggle(this)">
+            <img src="thumbnails/9742a0da5f6ab2195b2de7e4a9f2677a.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="2543" onclick="toggle(this)">
+            <img src="thumbnails/7b7fe5ff6ebfc10f8d9eeba099b383d2.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="10957" onclick="toggle(this)">
+            <img src="thumbnails/e016a1219a816984bd9d2e27712a8ddd.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="4665" onclick="toggle(this)">
+            <img src="thumbnails/8de497b79fefd0390db5a959b1cc63b6.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="8556" onclick="toggle(this)">
+            <img src="thumbnails/ec63e2b44cdfddadb3d51ca8927e9c33.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="7144" onclick="toggle(this)">
+            <img src="thumbnails/b5c124914f25f3884265b10eb66e41d9.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="4993" onclick="toggle(this)">
+            <img src="thumbnails/20ad8afac90111cbbe2f7bfa22098f8b.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="11686" onclick="toggle(this)">
+            <img src="thumbnails/08b0f3cd8d9fd55bd8468a90e125e8db.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="8589" onclick="toggle(this)">
+            <img src="thumbnails/397de167e7e99c22945948c54cf2e61c.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="9916" onclick="toggle(this)">
+            <img src="thumbnails/5ecd04308952c4193471cec040038e2a.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="2500" onclick="toggle(this)">
+            <img src="thumbnails/d45f35e2f8aead6c42a768d4272bba0b.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="12625" onclick="toggle(this)">
+            <img src="thumbnails/339ae4adc1642e4b40eed435d2b256f2.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="1317" onclick="toggle(this)">
+            <img src="thumbnails/d4ef3afbf04b524d6d32c49604f19dc7.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="7651" onclick="toggle(this)">
+            <img src="thumbnails/2ac775d14ad5b783b8b2d7bf4e3fd137.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="9897" onclick="toggle(this)">
+            <img src="thumbnails/952533b67648bb869a16a3c80dc6392e.jpg" loading="lazy">
+            <div class="info">score:0.44</div>
+        </div>
+
+        <div class="item" data-id="4875" onclick="toggle(this)">
+            <img src="thumbnails/480877b9d1d00278b5f7cd4b4c7ebf45.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7850" onclick="toggle(this)">
+            <img src="thumbnails/6bdc00288b2a961796d97cebb7a27acf.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="5240" onclick="toggle(this)">
+            <img src="thumbnails/771ff172ef6602c80239ecb80c0baeca.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="9890" onclick="toggle(this)">
+            <img src="thumbnails/98e177134b0c61b414128ac4fb67b30e.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="520" onclick="toggle(this)">
+            <img src="thumbnails/a8884803812009bbf0b78b07eb27d7b7.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7130" onclick="toggle(this)">
+            <img src="thumbnails/c4636d65b40c70ecf6f195f41e2369cb.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10851" onclick="toggle(this)">
+            <img src="thumbnails/06cecc5a7ff0394d295fc31c3aab7fe5.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="9793" onclick="toggle(this)">
+            <img src="thumbnails/a29d7ba74bf5950ddbd15ea2237bd0e2.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="8785" onclick="toggle(this)">
+            <img src="thumbnails/ff75a99f4c8f3a12d8239a930815f18d.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="45" onclick="toggle(this)">
+            <img src="thumbnails/d793577b2b4cd5c4964eab9282f3eb52.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="12158" onclick="toggle(this)">
+            <img src="thumbnails/cbe1cb2e1d4ccde16ccf9324deb9bf6e.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="6297" onclick="toggle(this)">
+            <img src="thumbnails/dcf01bc234678510b888e1365bdf152b.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="1097" onclick="toggle(this)">
+            <img src="thumbnails/632cc0ea1bcdc9d3e70a872bb9e9d2b6.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4873" onclick="toggle(this)">
+            <img src="thumbnails/4caf9603edcd882c17a7acd52f4764f3.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7593" onclick="toggle(this)">
+            <img src="thumbnails/e9fb10f59588560f12eb7fc0480acc9d.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10206" onclick="toggle(this)">
+            <img src="thumbnails/630e4bd44f1635b02e7540a0d0fb50b9.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="568" onclick="toggle(this)">
+            <img src="thumbnails/7514bb1f78bd1bd5796bac7624075fb4.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="11237" onclick="toggle(this)">
+            <img src="thumbnails/c3f7f59736b17f0a188472cedc38b17e.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4374" onclick="toggle(this)">
+            <img src="thumbnails/b4c08a565a57aa2e16b8cc9ab3ef0211.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10277" onclick="toggle(this)">
+            <img src="thumbnails/f88aecd9f5cc62deb83fd2fc4f7e554c.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="12090" onclick="toggle(this)">
+            <img src="thumbnails/d5cec7eeb9548269a7033550a4e38486.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10312" onclick="toggle(this)">
+            <img src="thumbnails/a062409323a90f3b28e2421c8cbb34d5.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10148" onclick="toggle(this)">
+            <img src="thumbnails/bb5aec92326dd9e65dfb455a3845ac47.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="798" onclick="toggle(this)">
+            <img src="thumbnails/f0c14b2146dc8c8fb242d08171a3d608.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10969" onclick="toggle(this)">
+            <img src="thumbnails/feb4e7be3162d8f7c217477e27068602.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="9228" onclick="toggle(this)">
+            <img src="thumbnails/a46549228d6d0ae405ea82dd18652c03.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="1015" onclick="toggle(this)">
+            <img src="thumbnails/702913112727d25b80d465b915635409.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="1341" onclick="toggle(this)">
+            <img src="thumbnails/21b0cbaeaa4eb817ad80dc8a199cfafd.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="498" onclick="toggle(this)">
+            <img src="thumbnails/f781470b18eb8e2b3a86ac904e41eb8a.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="6571" onclick="toggle(this)">
+            <img src="thumbnails/6a84ada7e85149c0cd7f10cc2b27e510.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4863" onclick="toggle(this)">
+            <img src="thumbnails/5ad4c47635a7b8eff20b77f1ddbc3b07.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="3093" onclick="toggle(this)">
+            <img src="thumbnails/5793d309422502dfa824d493c21a0132.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="8617" onclick="toggle(this)">
+            <img src="thumbnails/9d7f775c32d9dd370a5178d6d558ce35.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="11138" onclick="toggle(this)">
+            <img src="thumbnails/225ed286cacb702363c04046730b8b7a.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="1579" onclick="toggle(this)">
+            <img src="thumbnails/50018265fde88dc2fe643343479b7b5a.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10428" onclick="toggle(this)">
+            <img src="thumbnails/e3da2c5307484a3dd7d2b7c84ae6bdb3.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="12480" onclick="toggle(this)">
+            <img src="thumbnails/4f1ac509f6fa66f5e90d333bdfb68781.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7691" onclick="toggle(this)">
+            <img src="thumbnails/60dc86c65fed4295917dbf98e07102e3.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="13144" onclick="toggle(this)">
+            <img src="thumbnails/dbef482931af1afe199855333e1da90a.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="862" onclick="toggle(this)">
+            <img src="thumbnails/c31b1cb4377d7a8515418edce0847e28.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4531" onclick="toggle(this)">
+            <img src="thumbnails/4d09bd84283781ab06f6354c1199c3bb.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10715" onclick="toggle(this)">
+            <img src="thumbnails/eb9c6d162b967fae5f93607f1562a5cb.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="1383" onclick="toggle(this)">
+            <img src="thumbnails/cb42925a0390f8f55b868784a539682b.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="6422" onclick="toggle(this)">
+            <img src="thumbnails/619124317468adec5213f8042436ee24.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="12180" onclick="toggle(this)">
+            <img src="thumbnails/0385fe4b6b0d2cf9701c963f63973d0c.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="2560" onclick="toggle(this)">
+            <img src="thumbnails/f9c5a1b297dce28ed40360f19091e577.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="3478" onclick="toggle(this)">
+            <img src="thumbnails/20517a38e0c69bf75229c4f459097ca8.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10725" onclick="toggle(this)">
+            <img src="thumbnails/61e5559e3746f037acfa7f4bf6e6076f.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7648" onclick="toggle(this)">
+            <img src="thumbnails/bee6e56e4294cc31ad967e152af9bd18.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="6080" onclick="toggle(this)">
+            <img src="thumbnails/079d0d54fa910aadcf86503303da1742.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="11161" onclick="toggle(this)">
+            <img src="thumbnails/3f6aa27933d66456de8b64779c73d007.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="9312" onclick="toggle(this)">
+            <img src="thumbnails/422096dfaccc4501e998e4c41900ede7.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="951" onclick="toggle(this)">
+            <img src="thumbnails/171aa354ea96d4725f45c2d93229ce2b.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="5601" onclick="toggle(this)">
+            <img src="thumbnails/aeafc836134cdc6f43ece6909afc7abb.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4584" onclick="toggle(this)">
+            <img src="thumbnails/b9b8d80832679da8b75ac0aaae95094b.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="2129" onclick="toggle(this)">
+            <img src="thumbnails/51e37441920cc1046b20128570d51df3.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="8736" onclick="toggle(this)">
+            <img src="thumbnails/d42a9aec7f40a246aac74840c82ccc28.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="2718" onclick="toggle(this)">
+            <img src="thumbnails/eac6fd06192bac9509889e5564c41950.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="2835" onclick="toggle(this)">
+            <img src="thumbnails/3ea9cf1d66c98c2833a2e3edf1117976.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4932" onclick="toggle(this)">
+            <img src="thumbnails/f1c2c3494565e81f37f53bf42a77d069.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="9562" onclick="toggle(this)">
+            <img src="thumbnails/b3ed45f050849aab334cb88efb441c0f.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="4837" onclick="toggle(this)">
+            <img src="thumbnails/9452c1e1e7933c01d7b4a905d02ab605.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="11790" onclick="toggle(this)">
+            <img src="thumbnails/0c48cd801fd20ab47e171c7832c6b79b.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="9770" onclick="toggle(this)">
+            <img src="thumbnails/f3af299fb181f370b06be7fabbadc49d.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7607" onclick="toggle(this)">
+            <img src="thumbnails/532fe6dacbc92728051b05cfe142a56e.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="3670" onclick="toggle(this)">
+            <img src="thumbnails/579a44a0537cdf613342a464ff7b49eb.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="10506" onclick="toggle(this)">
+            <img src="thumbnails/5337ff4bc4e09192e975b4b1a58484b7.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="766" onclick="toggle(this)">
+            <img src="thumbnails/2c9884102ef9f2bb8e0cf6cd6d3b8cad.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="508" onclick="toggle(this)">
+            <img src="thumbnails/d87c0c9bb08c3a158fbec05d8eaf3cea.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="1077" onclick="toggle(this)">
+            <img src="thumbnails/4d207cc59550e47805ad3bb16d9e2ed3.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="12419" onclick="toggle(this)">
+            <img src="thumbnails/7a451ddb8f2f70c2333fb572afd4de80.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="7447" onclick="toggle(this)">
+            <img src="thumbnails/3dce4d995610927a955e3cce8acbe098.jpg" loading="lazy">
+            <div class="info">score:0.43</div>
+        </div>
+
+        <div class="item" data-id="12413" onclick="toggle(this)">
+            <img src="thumbnails/63a32ecd58c05bc0a4f4b43a31867e9e.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="8525" onclick="toggle(this)">
+            <img src="thumbnails/2bead95f8d96536653b18b085cdb03ac.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="497" onclick="toggle(this)">
+            <img src="thumbnails/83e6e1fa770816c5acba71429cbfeaf2.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10226" onclick="toggle(this)">
+            <img src="thumbnails/a6fb23aa6da43beb635b1200b1f953f4.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9168" onclick="toggle(this)">
+            <img src="thumbnails/0d1686cd2bcc14df90c0cf936e4313c3.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11526" onclick="toggle(this)">
+            <img src="thumbnails/fc24ec5451f8140eb84a24f54a78ce36.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11512" onclick="toggle(this)">
+            <img src="thumbnails/55256b596293fa4bc8b758dbcf1bcb5e.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10831" onclick="toggle(this)">
+            <img src="thumbnails/e80f8c3b434ff914263aaf5c9547e6c1.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10282" onclick="toggle(this)">
+            <img src="thumbnails/d4ddbb75d495c9b10483f502168187a8.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10307" onclick="toggle(this)">
+            <img src="thumbnails/f1993e129e5ca277a661dc71147d085b.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11534" onclick="toggle(this)">
+            <img src="thumbnails/7d6ac8081297d0e9e0ec2291d6bf4b50.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="2660" onclick="toggle(this)">
+            <img src="thumbnails/b0876461e0da0b5772c3d23f3d62e00f.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="578" onclick="toggle(this)">
+            <img src="thumbnails/e77ef1fc3ac3bebf8ec0cf63ebae8f22.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4397" onclick="toggle(this)">
+            <img src="thumbnails/453920614ec138d267c3588017053f69.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3180" onclick="toggle(this)">
+            <img src="thumbnails/3fd4ed101201f3e527721815051ff789.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11067" onclick="toggle(this)">
+            <img src="thumbnails/a14ebf4b0734b1705d842ff0a04f5b48.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4804" onclick="toggle(this)">
+            <img src="thumbnails/5544893122a1eb82ac01f107acb45249.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="1331" onclick="toggle(this)">
+            <img src="thumbnails/d311bd442753bd82a0a15d5a56d4241a.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="13008" onclick="toggle(this)">
+            <img src="thumbnails/33a259a69f8551172bacca84b6c55284.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3027" onclick="toggle(this)">
+            <img src="thumbnails/5572c51e48df7dcf1e97a515c1b9ef03.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10306" onclick="toggle(this)">
+            <img src="thumbnails/c1db0fabe603780f5b0321d14d965f2a.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="7719" onclick="toggle(this)">
+            <img src="thumbnails/0a6a2f5442206e89a36ab1aaa5900519.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3552" onclick="toggle(this)">
+            <img src="thumbnails/cc412225f19f9a55c4bf0857629ca2b2.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="7629" onclick="toggle(this)">
+            <img src="thumbnails/098e5c89eef2bb178eb938d93f030df1.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9180" onclick="toggle(this)">
+            <img src="thumbnails/c5370372c563748476719e9bc3116498.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4722" onclick="toggle(this)">
+            <img src="thumbnails/0282dc8e1dc5f3bdec638ed3ac642df6.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10511" onclick="toggle(this)">
+            <img src="thumbnails/9333a75646f4e22055c0155ff5da2bea.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="12916" onclick="toggle(this)">
+            <img src="thumbnails/a099602044677bec6a806f6456202fc4.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9518" onclick="toggle(this)">
+            <img src="thumbnails/7b5ecc77120a90112b2f6ca2b327789d.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10750" onclick="toggle(this)">
+            <img src="thumbnails/7a04549bcb5fdc82c1b70bb36bb722dd.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="584" onclick="toggle(this)">
+            <img src="thumbnails/44bfad7410c85185ff7af8931d60d467.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9029" onclick="toggle(this)">
+            <img src="thumbnails/dcf55fbbe53ba9c09e0b47b0b9d21d2f.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6164" onclick="toggle(this)">
+            <img src="thumbnails/8599d3f3146143e243454dfecb176e48.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="2767" onclick="toggle(this)">
+            <img src="thumbnails/48ad44d6f2a809e1d069a1ececef91a7.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11971" onclick="toggle(this)">
+            <img src="thumbnails/798c82c884dde9b3287fa0b3949cb980.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3870" onclick="toggle(this)">
+            <img src="thumbnails/eac50b8301bf0b865afd4eaa200d8dc4.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="12602" onclick="toggle(this)">
+            <img src="thumbnails/3c5ea101f8dcfa94633b95d054229c88.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6154" onclick="toggle(this)">
+            <img src="thumbnails/f09b2ad4411e9048966793cfa441a830.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3816" onclick="toggle(this)">
+            <img src="thumbnails/a2ba5717182d7264983a8e039372eade.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="2923" onclick="toggle(this)">
+            <img src="thumbnails/1fc7feaf92e211bb88122639c7920b00.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6058" onclick="toggle(this)">
+            <img src="thumbnails/982627bc12a149694459bd575ac086b1.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="12896" onclick="toggle(this)">
+            <img src="thumbnails/c20598f237240bfb726920b9e28349c6.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="19" onclick="toggle(this)">
+            <img src="thumbnails/da1b2522b83c84f1555518a581827f66.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6089" onclick="toggle(this)">
+            <img src="thumbnails/fc5bbddf5e1ea52743e6bc3be06edad0.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="12288" onclick="toggle(this)">
+            <img src="thumbnails/ef98ea538da4a36e373788b065b0107b.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11739" onclick="toggle(this)">
+            <img src="thumbnails/34618b59832f1e63c12ced4da1747658.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9279" onclick="toggle(this)">
+            <img src="thumbnails/93d4c734a75a71ea6e0986ab9b97013a.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6992" onclick="toggle(this)">
+            <img src="thumbnails/6693cfac08c162db269875a892acd207.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9347" onclick="toggle(this)">
+            <img src="thumbnails/f1d7b5c13a4e6ba0072ca2d97cc8ad9a.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3479" onclick="toggle(this)">
+            <img src="thumbnails/2b6904364111dfb382e5cf6f7af8e0dc.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="8499" onclick="toggle(this)">
+            <img src="thumbnails/6facd39cca8cfdf484cdf9d44314196f.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="5560" onclick="toggle(this)">
+            <img src="thumbnails/771bbc4e2d1d8e19769347fde174ac14.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4346" onclick="toggle(this)">
+            <img src="thumbnails/e64f3a8c587929ab8cf46bbdc1627eee.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="1378" onclick="toggle(this)">
+            <img src="thumbnails/e8dc366e738a1378fead275ffb72fba4.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6070" onclick="toggle(this)">
+            <img src="thumbnails/58827c7d1b9b5f56c825aecbce49c400.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4941" onclick="toggle(this)">
+            <img src="thumbnails/ce9a0f182ab43651048809c94cb38c13.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6943" onclick="toggle(this)">
+            <img src="thumbnails/043bb7d85740ec81b49b6063a3582973.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="7725" onclick="toggle(this)">
+            <img src="thumbnails/431d2f850a44d260d469862837acd118.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="8655" onclick="toggle(this)">
+            <img src="thumbnails/826d6161a22a7da5108e8640966a4808.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="11352" onclick="toggle(this)">
+            <img src="thumbnails/f120d322863f0f8d8c21e31f2a2b303d.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="5089" onclick="toggle(this)">
+            <img src="thumbnails/6b15476d3d2e380b4b3036c3a8bc1101.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="2191" onclick="toggle(this)">
+            <img src="thumbnails/5b2defb6c7575c6666ccc0acf0b469c8.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9725" onclick="toggle(this)">
+            <img src="thumbnails/3cbdc15be3f3141eb08137a1693fa5cc.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="3284" onclick="toggle(this)">
+            <img src="thumbnails/42a503b7cbb80e6d23b775e4d98c29de.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="7833" onclick="toggle(this)">
+            <img src="thumbnails/784c0d99b3464395c4b7b7b0a4cb44bc.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="7547" onclick="toggle(this)">
+            <img src="thumbnails/c4b8bf1c8952c87d817f2d2e735d6f0d.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="2416" onclick="toggle(this)">
+            <img src="thumbnails/ef8b5c7196ea05ec18a391902df1e9eb.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9811" onclick="toggle(this)">
+            <img src="thumbnails/1e40ab8f68be188e7b7e68863b1c0b94.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="8236" onclick="toggle(this)">
+            <img src="thumbnails/55ef5866a91082f19d6c8d18a67352b8.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="10942" onclick="toggle(this)">
+            <img src="thumbnails/ff29a5b4dfbb2d1973b7eeb1238a2a7b.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4012" onclick="toggle(this)">
+            <img src="thumbnails/810a888af3e63083e465bc2808a46126.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="8127" onclick="toggle(this)">
+            <img src="thumbnails/0a4b2f5cc0c4243e70fc85789cec9fef.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="7915" onclick="toggle(this)">
+            <img src="thumbnails/79dcdb3250530408c75365c8f17cf134.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="9219" onclick="toggle(this)">
+            <img src="thumbnails/29f2424c81bef7705ae9f5e0b7e63666.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="12368" onclick="toggle(this)">
+            <img src="thumbnails/af1d3f402264f61112350dd11ab326b8.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="12526" onclick="toggle(this)">
+            <img src="thumbnails/7fdb4dc035b9d1a4bfa86fcfb6ff68c0.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6426" onclick="toggle(this)">
+            <img src="thumbnails/9a0d14295c5603e496142a38f7c560c4.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="4056" onclick="toggle(this)">
+            <img src="thumbnails/e9cf6e06bc7c517b056516f558d1d00d.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="8337" onclick="toggle(this)">
+            <img src="thumbnails/fc4f799569a8b72e88e76747cc87f276.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6745" onclick="toggle(this)">
+            <img src="thumbnails/1d724bf9d05bbe3a40deceab3489fe68.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="1548" onclick="toggle(this)">
+            <img src="thumbnails/8bd9f7917869ed8ee09e18304747f4a3.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="2511" onclick="toggle(this)">
+            <img src="thumbnails/7a4fdf8bbcd2e61125e632f8d0020601.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6236" onclick="toggle(this)">
+            <img src="thumbnails/b7e4fad71a16cd40e2f857baf98b486b.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="5087" onclick="toggle(this)">
+            <img src="thumbnails/ec8fddde5d5df25c88c45ccf8a169628.jpg" loading="lazy">
+            <div class="info">score:0.42</div>
+        </div>
+
+        <div class="item" data-id="6741" onclick="toggle(this)">
+            <img src="thumbnails/9695b74300559eee74e0f3972831e433.jpg" loading="lazy">
+            <div class="info">score:0.41</div>
+        </div>
+
+        <div class="item" data-id="13289" onclick="toggle(this)">
+            <img src="thumbnails/8c5759ed95c2e9392181f57a3dc9a5f9.jpg" loading="lazy">
+            <div class="info">score:0.41</div>
+        </div>
+
+        <div class="item" data-id="5770" onclick="toggle(this)">
+            <img src="thumbnails/046784370cf8cd8c6d69553cf253cff3.jpg" loading="lazy">
+            <div class="info">score:0.41</div>
+        </div>
+
+        <div class="item" data-id="5960" onclick="toggle(this)">
+            <img src="thumbnails/fee4ec48bc8fab3e8a04909ea12c18bf.jpg" loading="lazy">
+            <div class="info">score:0.41</div>
+        </div>
+
+        <div class="item" data-id="4224" onclick="toggle(this)">
+            <img src="thumbnails/67895a105603ad540e91a3b9aa00c72a.jpg" loading="lazy">
+            <div class="info">score:0.41</div>
+        </div>
+
+    </div>
+    <div class="controls">
+        <button onclick="selectTop(100)" style="background:#4488ff;color:white;">Select Top 100</button>
+        <button onclick="selectAll()" style="background:#00aa00;color:white;">Select All Visible</button>
+        <div class="results-row">
+            <div class="results-box">
+                <h4>✅ GREEN IDs (copy this):</h4>
+                <textarea id="greenIds" readonly onclick="this.select()"></textarea>
+            </div>
+            <div class="results-box">
+                <h4>❌ RED IDs (copy this):</h4>
+                <textarea id="redIds" readonly onclick="this.select()"></textarea>
+            </div>
+        </div>
+    </div>
+    <script>
+        function updateCount() {
+            document.getElementById('count').textContent = document.querySelectorAll('.item.selected').length;
+            document.getElementById('rejCount').textContent = document.querySelectorAll('.item.rejected').length;
+            updateTextboxes();
+        }
+        function toggle(el) {
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                el.classList.add('rejected');
+            } else if (el.classList.contains('rejected')) {
+                el.classList.remove('rejected');
+            } else {
+                el.classList.add('selected');
+            }
+            updateCount();
+        }
+        function selectTop(n) {
+            const items = document.querySelectorAll('.item');
+            for (let i = 0; i < Math.min(n, items.length); i++) {
+                if (!items[i].classList.contains('rejected')) {
+                    items[i].classList.add('selected');
+                }
+            }
+            updateCount();
+        }
+        function selectAll() {
+            document.querySelectorAll('.item').forEach(el => {
+                if (!el.classList.contains('rejected')) {
+                    el.classList.add('selected');
+                }
+            });
+            updateCount();
+        }
+        function updateTextboxes() {
+            const greenIds = [...document.querySelectorAll('.item.selected')].map(el => el.dataset.id);
+            const redIds = [...document.querySelectorAll('.item.rejected')].map(el => el.dataset.id);
+            document.getElementById('greenIds').value = greenIds.join(',');
+            document.getElementById('redIds').value = redIds.join(',');
+        }
+    </script>
+</body>
+</html>

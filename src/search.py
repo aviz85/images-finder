@@ -7,7 +7,7 @@ import numpy as np
 
 from .config import Config
 from .database import ImageDatabase
-from .embeddings import EmbeddingModel, EmbeddingCache
+from .embeddings import EmbeddingModel, EmbeddingCache, create_embedding_model
 from .faiss_index import FAISSIndex, HybridSearch
 from .image_processor import ImageProcessor
 
@@ -63,6 +63,7 @@ class ImageSearchEngine:
         # Initialize components
         self.db = ImageDatabase(config.db_path)
         self.embedding_model = None
+        self.local_model = None  # For image encoding when using Gemini API
         self.embedding_cache = EmbeddingCache(config.embeddings_path)
         self.faiss_index = None
         self.hybrid_search = None
@@ -72,13 +73,24 @@ class ImageSearchEngine:
         """Load all necessary components."""
         print("Initializing search engine...")
 
-        # Load embedding model
+        # Load embedding model (local or Gemini API)
         if self.embedding_model is None:
-            self.embedding_model = EmbeddingModel(
-                model_name=self.config.model_name,
-                pretrained=self.config.pretrained,
-                device=self.config.device
-            )
+            embedding_mode = getattr(self.config, 'embedding_mode', 'local')
+            if embedding_mode == 'gemini':
+                print(f"Using Gemini Embedding API for text queries (mode: {embedding_mode})")
+                print("Note: Image search will use local model")
+                # For Gemini mode, we need both models - local for images, Gemini for text
+                self.embedding_model = create_embedding_model(self.config)
+                # Keep local model for image encoding
+                self.local_model = EmbeddingModel(
+                    model_name=self.config.model_name,
+                    pretrained=self.config.pretrained,
+                    device=self.config.device
+                )
+            else:
+                print(f"Using local CLIP model (mode: {embedding_mode})")
+                self.embedding_model = create_embedding_model(self.config)
+                self.local_model = None
 
         # Load embeddings cache
         print("Loading embeddings...")
@@ -125,11 +137,34 @@ class ImageSearchEngine:
         Returns:
             List of SearchResult objects
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if self.embedding_model is None:
+            logger.warning("Embedding model not loaded! Initializing now...")
             self.initialize()
+            logger.info("Model initialization complete")
 
         # Encode text query
+        logger.info(f"Encoding text query: '{query[:50]}{'...' if len(query) > 50 else ''}'")
         query_embedding = self.embedding_model.encode_text(query, normalize=True)
+        logger.info(f"Text encoding complete, embedding shape: {query_embedding.shape}")
+        
+        # Handle dimension mismatch (e.g., Gemini 768-dim vs index 512-dim)
+        if hasattr(query_embedding, 'shape') and len(query_embedding.shape) > 0:
+            query_dim = query_embedding.shape[0] if query_embedding.ndim == 1 else query_embedding.shape[1]
+            index_dim = self.config.embedding_dim
+            
+            if query_dim != index_dim:
+                logger.warning(
+                    f"⚠️ Dimension mismatch: query={query_dim}, index={index_dim}. "
+                    f"Attempting dimension adaptation..."
+                )
+                from .dimension_adapter import create_adapter_if_needed
+                adapter = create_adapter_if_needed(query_dim, index_dim)
+                if adapter:
+                    query_embedding = adapter.adapt(query_embedding)
+                    logger.info(f"Dimension adapted: {query_dim} → {index_dim}")
 
         # Search
         if self.use_hybrid and self.hybrid_search:
@@ -173,7 +208,13 @@ class ImageSearchEngine:
         if image is None:
             raise ValueError(f"Failed to load image: {image_path}")
 
-        query_embedding = self.embedding_model.encode_image(image, normalize=True)
+        # For image encoding, always use local model (Gemini doesn't support images)
+        model_to_use = self.local_model if self.local_model is not None else self.embedding_model
+        if model_to_use is None:
+            self.initialize()
+            model_to_use = self.local_model if self.local_model is not None else self.embedding_model
+        
+        query_embedding = model_to_use.encode_image(image, normalize=True)
 
         # Search
         if self.use_hybrid and self.hybrid_search:
@@ -256,8 +297,14 @@ class ImageSearchEngine:
 
         # Build results in order
         results = []
+        max_valid_index = len(self.embedding_cache.embeddings) - 1 if self.embedding_cache.embeddings is not None else None
+        
         for idx, score in zip(indices, scores):
             if idx < 0:  # Invalid index from FAISS
+                continue
+            
+            # Filter out invalid embedding indices (beyond available embeddings)
+            if max_valid_index is not None and idx > max_valid_index:
                 continue
 
             record = index_to_record.get(int(idx))

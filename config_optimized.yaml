@@ -1,11 +1,12 @@
 # Optimized Configuration - No Thumbnails, Parallel Processing Ready
 # Performance optimized for Apple M1, USB 2.0 (will improve with USB 3.0)
 
-# Paths - Data on external drive, thumbnails in /tmp (not actively used)
-data_dir: /Volumes/My Book/images-finder-data
-db_path: /Volumes/My Book/images-finder-data/metadata.db
-index_path: /Volumes/My Book/images-finder-data/faiss.index
-embeddings_path: /Volumes/My Book/images-finder-data/embeddings.npy
+# Paths - Database on LOCAL SSD (prevents corruption on ExFAT)
+# Images stay on external drive, only DB is local
+data_dir: /Users/aviz/images-finder/data
+db_path: /Users/aviz/images-finder/data/metadata.db
+index_path: /Users/aviz/images-finder/data/faiss.index
+embeddings_path: /Users/aviz/images-finder/data/embeddings.npy
 thumbnails_dir: /tmp/image-finder-thumbnails-disabled  # Not used, safe path
 
 # Model settings - Optimized for M1 CPU

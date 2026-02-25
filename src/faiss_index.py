@@ -229,7 +229,16 @@ class HybridSearch:
         candidate_indices = candidate_indices[candidate_indices >= 0]
 
         # Step 2: Re-rank candidates with exact embeddings
-        candidate_embeddings = self.embeddings_cache[candidate_indices]
+        # Filter out invalid indices (beyond available embeddings)
+        max_valid_index = len(self.embeddings_cache) - 1
+        valid_mask = candidate_indices <= max_valid_index
+        valid_candidate_indices = candidate_indices[valid_mask]
+        
+        if len(valid_candidate_indices) == 0:
+            # No valid candidates, return empty results
+            return np.array([]), np.array([], dtype=np.int64)
+        
+        candidate_embeddings = self.embeddings_cache[valid_candidate_indices]
 
         # Compute exact cosine similarities (assuming normalized embeddings)
         similarities = np.dot(candidate_embeddings, query_embedding.T).squeeze()
@@ -240,6 +249,6 @@ class HybridSearch:
         # Get top-k
         top_k_idx = sorted_idx[:k]
         top_k_distances = similarities[top_k_idx]
-        top_k_indices = candidate_indices[top_k_idx]
+        top_k_indices = valid_candidate_indices[top_k_idx]
 
         return top_k_distances, top_k_indices

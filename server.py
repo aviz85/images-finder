@@ -2,7 +2,7 @@
 """FastAPI HTTP server for semantic image search."""
 
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pathlib import Path
@@ -10,13 +10,24 @@ from typing import List, Optional, Dict, Any
 import tempfile
 import os
 import threading
+import logging
+import io
 from datetime import datetime
+from PIL import Image
 
 from src.config import Config
 from src.search import ImageSearchEngine, SearchResult
 from src.pipeline import IndexingPipeline
 from src.faiss_index import FAISSIndex
 from src.embeddings import EmbeddingCache
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
 # Initialize FastAPI app
@@ -63,11 +74,17 @@ async def startup_event():
     """Initialize search engine on startup."""
     global search_engine, config
 
-    print("Initializing search engine...")
+    logger.info("=" * 60)
+    logger.info("Starting server initialization...")
+    logger.info("Step 1: Loading configuration...")
     config = Config()
+    logger.info(f"Step 2: Creating search engine (hybrid mode)...")
     search_engine = ImageSearchEngine(config, use_hybrid=True)
+    logger.info("Step 3: Initializing search engine components...")
     search_engine.initialize()
-    print("Search engine ready!")
+    logger.info("=" * 60)
+    logger.info("✓ Server ready! All components initialized.")
+    logger.info("=" * 60)
 
 
 @app.on_event("shutdown")
@@ -75,14 +92,17 @@ async def shutdown_event():
     """Clean up resources on shutdown."""
     global search_engine
 
+    logger.info("Shutting down server...")
     if search_engine:
+        logger.info("Step 1: Closing search engine...")
         search_engine.close()
-        print("Search engine closed")
+        logger.info("✓ Server shutdown complete")
 
 
 @app.get("/")
 async def root():
     """Root endpoint."""
+    logger.info("GET / - Root endpoint accessed")
     return {
         "message": "Local Semantic Image Search API",
         "version": "0.1.0",
@@ -100,9 +120,12 @@ async def health():
     """Health check endpoint."""
     global search_engine
 
+    logger.info("GET /health - Health check")
     if search_engine is None:
+        logger.warning("Health check failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
+    logger.info("✓ Health check passed")
     return {"status": "healthy", "search_engine": "ready"}
 
 
@@ -111,12 +134,18 @@ async def get_stats():
     """Get indexing statistics."""
     global search_engine, config
 
+    logger.info("GET /stats - Fetching statistics...")
     if search_engine is None:
+        logger.error("Stats request failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
+    logger.info("Step 1: Querying total images...")
     total = search_engine.db.get_total_images()
+    logger.info("Step 2: Querying processed images...")
     processed = search_engine.db.get_processed_count()
+    logger.info("Step 3: Checking index file...")
     index_ready = config.index_path.exists()
+    logger.info(f"✓ Stats: {total:,} total, {processed:,} processed, index={'ready' if index_ready else 'not ready'}")
 
     return StatsResponse(
         total_images=total,
@@ -133,23 +162,35 @@ async def search_by_text(
     """Search for images using text query."""
     global search_engine
 
+    logger.info(f"GET /search/text - Query: '{q[:50]}{'...' if len(q) > 50 else ''}', top_k={top_k}")
     if search_engine is None:
+        logger.error("Text search failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
     try:
+        logger.info("Step 1: Encoding text query to embedding...")
+        logger.info(f"Step 1a: Checking if embedding model is loaded...")
+        if search_engine.embedding_model is None:
+            logger.warning("Model not loaded! Initializing now (this may take time)...")
+        else:
+            logger.info("Model already loaded, encoding text...")
         results = search_engine.search_by_text(q, top_k=top_k)
+        logger.info(f"Step 2: Search returned {len(results)} results")
+        logger.info("Step 3: Converting results to dict...")
         results_dict = [r.to_dict() for r in results]
 
-        # Add folder tags to each result
+        logger.info("Step 4: Adding folder tags to results...")
         for result in results_dict:
             result['folders'] = extract_folder_tags(result.get('file_path', ''))
 
+        logger.info(f"✓ Text search complete: {len(results)} results")
         return SearchResponse(
             query=q,
             num_results=len(results),
             results=results_dict
         )
     except Exception as e:
+        logger.error(f"✗ Text search error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -161,22 +202,29 @@ async def search_by_image(
     """Search for similar images using an uploaded image."""
     global search_engine
 
+    logger.info(f"POST /search/image - File: {file.filename}, top_k={top_k}")
     if search_engine is None:
+        logger.error("Image search failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
-    # Save uploaded file to temporary location
+    tmp_path = None
     try:
+        logger.info("Step 1: Saving uploaded file to temp location...")
         with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as tmp:
             contents = await file.read()
             tmp.write(contents)
             tmp_path = tmp.name
+        logger.info(f"Step 2: Temp file saved: {tmp_path}")
 
-        # Perform search
+        logger.info("Step 3: Encoding image to embedding...")
         results = search_engine.search_by_image(tmp_path, top_k=top_k)
+        logger.info(f"Step 4: Search returned {len(results)} results")
 
-        # Clean up temp file
+        logger.info("Step 5: Cleaning up temp file...")
         os.unlink(tmp_path)
+        tmp_path = None
 
+        logger.info(f"✓ Image search complete: {len(results)} results")
         return SearchResponse(
             query=file.filename,
             num_results=len(results),
@@ -184,36 +232,79 @@ async def search_by_image(
         )
 
     except Exception as e:
-        # Clean up temp file on error
-        if 'tmp_path' in locals():
+        logger.error(f"✗ Image search error: {e}")
+        if tmp_path and os.path.exists(tmp_path):
             try:
                 os.unlink(tmp_path)
+                logger.info("Cleaned up temp file after error")
             except:
                 pass
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/thumbnail/{image_id}")
-async def get_thumbnail(image_id: int):
-    """Get thumbnail for an image by ID."""
-    global search_engine
+async def get_thumbnail(image_id: int, size: int = Query(384, ge=50, le=1024, description="Thumbnail max size")):
+    """Get thumbnail for an image by ID. If thumbnail doesn't exist, serves resized full image."""
+    global search_engine, config
 
+    logger.info(f"GET /thumbnail/{image_id} - Requesting thumbnail (size={size})")
     if search_engine is None:
+        logger.error("Thumbnail request failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
-    # Get image record
     cursor = search_engine.db.conn.cursor()
-    cursor.execute("SELECT thumbnail_path FROM images WHERE id = ?", (image_id,))
+    
+    # Try to get existing thumbnail first
+    logger.info("Step 1: Checking for existing thumbnail...")
+    cursor.execute("SELECT thumbnail_path, file_path FROM images WHERE id = ?", (image_id,))
     row = cursor.fetchone()
 
-    if not row or not row['thumbnail_path']:
-        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    if not row:
+        logger.warning(f"Image not found: image_id={image_id}")
+        raise HTTPException(status_code=404, detail="Image not found")
 
-    thumbnail_path = Path(row['thumbnail_path'])
-    if not thumbnail_path.exists():
-        raise HTTPException(status_code=404, detail="Thumbnail file not found")
+    thumbnail_path = row['thumbnail_path'] if row else None
+    file_path = Path(row['file_path'])
 
-    return FileResponse(thumbnail_path, media_type="image/jpeg")
+    # If thumbnail exists and is valid, serve it
+    if thumbnail_path:
+        thumb_path = Path(thumbnail_path)
+        if thumb_path.exists():
+            logger.info(f"✓ Serving existing thumbnail: {thumb_path}")
+            return FileResponse(thumb_path, media_type="image/jpeg")
+
+    # Thumbnail doesn't exist - serve resized full image on-the-fly
+    logger.info(f"Step 2: Thumbnail not found, resizing full image on-the-fly: {file_path}")
+    
+    if not file_path.exists():
+        logger.error(f"Image file not found: {file_path}")
+        raise HTTPException(status_code=404, detail="Image file not found")
+
+    try:
+        # Open and resize image
+        with Image.open(file_path) as img:
+            # Convert to RGB if necessary
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Create thumbnail (maintains aspect ratio)
+            img.thumbnail((size, size), Image.Resampling.LANCZOS)
+            
+            # Save to in-memory buffer
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format='JPEG', quality=85, optimize=True)
+            img_buffer.seek(0)
+            
+            logger.info(f"✓ Serving resized image ({img.width}×{img.height})")
+            return Response(
+                content=img_buffer.getvalue(),
+                media_type="image/jpeg",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+    
+    except Exception as e:
+        logger.error(f"✗ Error resizing image: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process image: {str(e)}")
 
 
 @app.get("/image/{image_id}")
@@ -221,16 +312,21 @@ async def get_image_info(image_id: int):
     """Get full information about an image."""
     global search_engine
 
+    logger.info(f"GET /image/{image_id} - Requesting image info")
     if search_engine is None:
+        logger.error("Image info request failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
+    logger.info("Step 1: Querying database for image data...")
     cursor = search_engine.db.conn.cursor()
     cursor.execute("SELECT * FROM images WHERE id = ?", (image_id,))
     row = cursor.fetchone()
 
     if not row:
+        logger.warning(f"Image not found: image_id={image_id}")
         raise HTTPException(status_code=404, detail="Image not found")
 
+    logger.info(f"✓ Image info retrieved: {row.get('file_name', 'unknown')}")
     return dict(row)
 
 
@@ -245,20 +341,23 @@ async def get_similar_images(
     """
     global search_engine
 
+    logger.info(f"GET /image/{image_id}/similar - Finding similar images (limit={limit})")
     if search_engine is None:
+        logger.error("Similar images request failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
     db = search_engine.db
     cursor = db.conn.cursor()
 
-    # Get the image info
+    logger.info("Step 1: Fetching query image info...")
     cursor.execute("SELECT * FROM images WHERE id = ?", (image_id,))
     image = cursor.fetchone()
 
     if not image:
+        logger.warning(f"Query image not found: image_id={image_id}")
         raise HTTPException(status_code=404, detail="Image not found")
 
-    # Get canonical ID (in case this is a duplicate)
+    logger.info("Step 2: Getting canonical ID...")
     canonical_id = db.get_canonical_image_id(image_id)
 
     # Part 1: Find duplicates
@@ -285,24 +384,29 @@ async def get_similar_images(
 
     duplicate_rows = cursor.fetchall()
     duplicates = [dict(row) for row in duplicate_rows]
+    logger.info(f"Step 3: Found {len(duplicates)} duplicate images")
 
     # Part 2: Find semantically similar images using embeddings
     similar = []
 
     if image['embedding_index'] is not None and search_engine.hybrid_search is not None:
+        logger.info("Step 4: Searching for semantically similar images...")
         # Get this image's embedding
         embedding_idx = image['embedding_index']
         embedding = search_engine.hybrid_search.embeddings_cache[embedding_idx]
+        logger.info(f"Step 5: Retrieved embedding at index {embedding_idx}")
 
         # Search for similar images (get more than needed, we'll filter)
         search_results = search_engine.search_by_embedding(
             embedding,
             top_k=limit + len(duplicates) + 10  # Extra to account for filtering
         )
+        logger.info(f"Step 6: Initial search returned {len(search_results)} candidates")
 
         # Filter out: the query image itself, duplicates (already shown), and convert to dict
         duplicate_ids = {d['id'] for d in duplicates}
         duplicate_ids.add(image_id)  # Also exclude the query image
+        logger.info("Step 7: Filtering results (excluding duplicates and query image)...")
 
         for result in search_results:
             if result.image_id not in duplicate_ids:
@@ -323,6 +427,11 @@ async def get_similar_images(
                 if len(similar) >= limit:
                     break
 
+        logger.info(f"Step 8: Filtered to {len(similar)} similar images")
+    else:
+        logger.warning(f"Image has no embedding (index={image.get('embedding_index')}) or hybrid_search not available")
+
+    logger.info(f"✓ Similar images complete: {len(duplicates)} duplicates, {len(similar)} similar")
     return {
         'duplicates': duplicates,
         'similar': similar
@@ -464,21 +573,35 @@ async def browse_images(
     """Browse images with pagination and filtering. Always shows unique images only."""
     global search_engine
 
+    filters = []
+    if min_rating: filters.append(f"min_rating={min_rating}")
+    if max_rating: filters.append(f"max_rating={max_rating}")
+    if tag_ids: filters.append(f"tags={tag_ids}")
+    if folder_path: filters.append(f"folder={folder_path[:30]}")
+    filter_str = f" [{', '.join(filters)}]" if filters else ""
+    logger.info(f"GET /browse - Page {page}, {per_page} per page, sort={sort_by}({sort_order}){filter_str}")
+
     if search_engine is None:
+        logger.error("Browse request failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
     # Calculate offset
     offset = (page - 1) * per_page
+    logger.info(f"Step 1: Calculating offset: {offset}")
 
     # Parse tag_ids if provided
     tag_id_list = None
     if tag_ids:
+        logger.info("Step 2: Parsing tag IDs...")
         try:
             tag_id_list = [int(tid) for tid in tag_ids.split(',') if tid.strip()]
+            logger.info(f"Parsed {len(tag_id_list)} tag IDs")
         except ValueError:
+            logger.error(f"Invalid tag_ids format: {tag_ids}")
             raise HTTPException(status_code=400, detail="Invalid tag_ids format")
 
     # Get images (always unique only)
+    logger.info("Step 3: Fetching images from database...")
     images = search_engine.db.get_images_with_ratings(
         limit=per_page,
         offset=offset,
@@ -490,20 +613,32 @@ async def browse_images(
         tag_ids=tag_id_list,
         folder_path=folder_path
     )
+    logger.info(f"Step 4: Retrieved {len(images)} images")
 
     cursor = search_engine.db.conn.cursor()
+
+    logger.info("Step 5: Enriching images with folder tags and duplicate counts...")
+    
+    # Get all image IDs first
+    image_ids = [img['id'] for img in images]
+    
+    # Fetch all duplicate counts in one query (much faster!)
+    duplicate_counts = {}
+    if image_ids:
+        placeholders = ','.join('?' * len(image_ids))
+        cursor.execute(f"""
+            SELECT duplicate_of, COUNT(*) as count
+            FROM images
+            WHERE duplicate_of IN ({placeholders})
+            GROUP BY duplicate_of
+        """, image_ids)
+        for row in cursor.fetchall():
+            duplicate_counts[row['duplicate_of']] = row['count']
 
     # Add folder tags and duplicate count to each image
     for img in images:
         img['folders'] = extract_folder_tags(img['file_path'])
-
-        # Get duplicate count
-        cursor.execute("""
-            SELECT COUNT(*) as count
-            FROM images
-            WHERE duplicate_of = ?
-        """, (img['id'],))
-        img['duplicate_count'] = cursor.fetchone()['count']
+        img['duplicate_count'] = duplicate_counts.get(img['id'], 0)
 
     # Get total count (unique images only, with tag and folder filter if applicable)
     count_params = []
@@ -535,9 +670,12 @@ async def browse_images(
             count_query += " AND file_path LIKE ?"
             count_params.append(f"%{folder_path}%")
         cursor.execute(count_query, count_params)
+    logger.info("Step 6: Counting total images...")
     total = cursor.fetchone()['count']
+    logger.info(f"Total images matching filters: {total:,}")
 
     total_pages = (total + per_page - 1) // per_page
+    logger.info(f"✓ Browse complete: {len(images)} images on page {page}/{total_pages}")
 
     return BrowseResponse(
         total=total,
@@ -560,35 +698,41 @@ async def search_by_similar_image(
     """
     global search_engine
 
+    logger.info(f"GET /search/image/{image_id} - Similar image search (page {page}, {per_page} per page)")
     if search_engine is None:
+        logger.error("Similar image search failed: Search engine not initialized")
         raise HTTPException(status_code=503, detail="Search engine not initialized")
 
     db = search_engine.db
     cursor = db.conn.cursor()
 
-    # Get the source image info
+    logger.info("Step 1: Fetching query image info...")
     cursor.execute("SELECT * FROM images WHERE id = ?", (image_id,))
     image = cursor.fetchone()
 
     if not image:
+        logger.warning(f"Query image not found: image_id={image_id}")
         raise HTTPException(status_code=404, detail="Image not found")
 
-    # Get canonical ID to exclude duplicates
+    logger.info("Step 2: Getting canonical ID...")
     canonical_id = db.get_canonical_image_id(image_id)
 
-    # Get embedding for this image
+    logger.info("Step 3: Checking embedding availability...")
     if image['embedding_index'] is None or search_engine.hybrid_search is None:
+        logger.error(f"Image has no embedding (index={image.get('embedding_index')})")
         raise HTTPException(status_code=400, detail="Image has no embedding")
 
     embedding_idx = image['embedding_index']
     embedding = search_engine.hybrid_search.embeddings_cache[embedding_idx]
+    logger.info(f"Step 4: Retrieved embedding at index {embedding_idx}")
 
-    # Search for similar images (get many results for pagination)
+    logger.info("Step 5: Searching for similar images...")
     max_results = 1000
     search_results = search_engine.search_by_embedding(
         embedding,
         top_k=max_results
     )
+    logger.info(f"Step 6: Initial search returned {len(search_results)} candidates")
 
     # Build set of IDs to exclude (query image + all its duplicates)
     exclude_ids = set()
@@ -606,7 +750,9 @@ async def search_by_similar_image(
         exclude_ids.add(row['id'])
 
     exclude_ids.add(image_id)  # Also exclude query image itself
+    logger.info(f"Step 7: Excluding {len(exclude_ids)} duplicate/query images...")
 
+    logger.info("Step 8: Filtering results (removing duplicates)...")
     # Filter results: remove query image, its duplicates, and duplicate variants
     filtered_results = []
     seen_canonical_ids = set()
@@ -623,6 +769,9 @@ async def search_by_similar_image(
         seen_canonical_ids.add(result_canonical)
         filtered_results.append(result)
 
+    logger.info(f"Step 9: Filtered to {len(filtered_results)} unique results")
+
+    logger.info("Step 10: Applying pagination...")
     # Apply pagination
     total = len(filtered_results)
     total_pages = (total + per_page - 1) // per_page
@@ -630,26 +779,43 @@ async def search_by_similar_image(
 
     paginated_results = filtered_results[offset:offset + per_page]
 
+    # Get all image IDs first for batch queries
+    result_image_ids = [r.image_id for r in paginated_results]
+    
+    # Fetch all duplicate counts in one query (much faster!)
+    duplicate_counts = {}
+    if result_image_ids:
+        placeholders = ','.join('?' * len(result_image_ids))
+        cursor.execute(f"""
+            SELECT duplicate_of, COUNT(*) as count
+            FROM images
+            WHERE duplicate_of IN ({placeholders})
+            GROUP BY duplicate_of
+        """, result_image_ids)
+        for row in cursor.fetchall():
+            duplicate_counts[row['duplicate_of']] = row['count']
+    
+    # Fetch all image data in one query
+    images_dict = {}
+    if result_image_ids:
+        placeholders = ','.join('?' * len(result_image_ids))
+        cursor.execute(f"""
+            SELECT * FROM images WHERE id IN ({placeholders})
+        """, result_image_ids)
+        for row in cursor.fetchall():
+            images_dict[row['id']] = dict(row)
+
     # Convert to image dict format (matching browse response)
     images = []
     for result in paginated_results:
-        cursor.execute("SELECT * FROM images WHERE id = ?", (result.image_id,))
-        img_row = cursor.fetchone()
-        if img_row:
-            img_dict = dict(img_row)
+        if result.image_id in images_dict:
+            img_dict = images_dict[result.image_id].copy()
             img_dict['folders'] = extract_folder_tags(img_dict['file_path'])
-            img_dict['similarity_score'] = float(result.score)  # Add similarity score
-
-            # Get duplicate count
-            cursor.execute("""
-                SELECT COUNT(*) as count
-                FROM images
-                WHERE duplicate_of = ?
-            """, (result.image_id,))
-            img_dict['duplicate_count'] = cursor.fetchone()['count']
-
+            img_dict['similarity_score'] = float(result.score)
+            img_dict['duplicate_count'] = duplicate_counts.get(result.image_id, 0)
             images.append(img_dict)
 
+    logger.info(f"✓ Similar image search complete: {len(images)} images on page {page}/{total_pages}")
     return BrowseResponse(
         total=total,
         page=page,

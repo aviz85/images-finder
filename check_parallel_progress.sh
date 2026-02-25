@@ -58,7 +58,7 @@ echo "Database Statistics:"
 python3 << 'EOF'
 import sqlite3
 try:
-    conn = sqlite3.connect('/Volumes/My Book/images-finder-data/metadata.db')
+    conn = sqlite3.connect('/Users/aviz/images-finder/data/metadata.db')
     cur = conn.cursor()
     
     cur.execute('SELECT COUNT(*) FROM images')

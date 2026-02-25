@@ -10,7 +10,7 @@ from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 
 PORT = 8888
-DB_PATH = "/Volumes/My Book/images-finder-data/metadata.db"
+DB_PATH = "/Users/aviz/images-finder/data/metadata.db"
 TOTAL_TARGET = 3174680
 
 class DashboardHandler(http.server.SimpleHTTPRequestHandler):

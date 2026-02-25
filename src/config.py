@@ -5,6 +5,13 @@ from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, Field
 
+# Load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, skip
+
 
 class Config(BaseModel):
     """Main configuration for the image search system."""
@@ -49,6 +56,20 @@ class Config(BaseModel):
         default=5,
         description="Hamming distance threshold for duplicate detection (0-64). "
                     "Lower = stricter. 5 ≈ 92% similar, 10 ≈ 84% similar"
+    )
+
+    # Embedding API settings
+    embedding_mode: str = Field(
+        default=os.environ.get("EMBEDDING_MODE", "local"),
+        description="Embedding mode: 'local' (CLIP) or 'gemini' (API)"
+    )
+    gemini_api_key: Optional[str] = Field(
+        default=os.environ.get("GEMINI_API_KEY"),
+        description="Google Gemini API key for embedding API"
+    )
+    gemini_embedding_dim: int = Field(
+        default=768,
+        description="Gemini embedding dimension (768 for gemini-embedding-001)"
     )
 
     class Config:

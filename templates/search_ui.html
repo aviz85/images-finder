@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חיפוש סמנטי בתמונות</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .search-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+        }
+
+        .search-button {
+            padding: 15px 40px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-button:active {
+            transform: translateY(0);
+        }
+
+        .search-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            min-height: 400px;
+        }
+
+        .results-header {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .result-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .result-thumbnail {
+            width: 100%;
+            height: 200px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .result-thumbnail .placeholder {
+            color: #999;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .result-thumbnail .loading {
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .result-info {
+            padding: 15px;
+        }
+
+        .result-score {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .result-filename {
+            color: #333;
+            font-size: 0.85em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .result-path {
+            color: #999;
+            font-size: 0.75em;
+            margin-top: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 60px 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 חיפוש סמנטי בתמונות</h1>
+            <p>חפש תמונות לפי תיאור טקסטואלי</p>
+        </div>
+
+        <div class="search-box">
+            <form class="search-form" onsubmit="performSearch(event)">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="לדוגמה: שמיים, אוקיינוס, אנשים, בניינים..."
+                    autocomplete="off"
+                >
+                <button type="submit" class="search-button" id="searchButton">
+                    חפש
+                </button>
+            </form>
+        </div>
+
+        <div class="results-container">
+            <div id="resultsContent">
+                <div class="no-results">
+                    הזן שאילתת חיפוש למעלה
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = [];
+
+        async function performSearch(event) {
+            event.preventDefault();
+            
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            const searchButton = document.getElementById('searchButton');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            // Disable button and show loading
+            searchButton.disabled = true;
+            searchButton.innerHTML = 'מחפש... <span class="loading-spinner"></span>';
+            
+            resultsContent.innerHTML = '<div class="no-results">מחפש... <span class="loading-spinner"></span></div>';
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: 20
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Search failed');
+                }
+
+                const data = await response.json();
+                currentResults = data.results || [];
+                
+                displayResults(data);
+                
+                // Generate thumbnails for results that don't have them
+                await generateMissingThumbnails(data.results);
+                
+            } catch (error) {
+                resultsContent.innerHTML = `
+                    <div class="error-message">
+                        שגיאה: ${error.message}
+                    </div>
+                `;
+            } finally {
+                searchButton.disabled = false;
+                searchButton.innerHTML = 'חפש';
+            }
+        }
+
+        function displayResults(data) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            if (data.num_results === 0) {
+                resultsContent.innerHTML = '<div class="no-results">לא נמצאו תוצאות</div>';
+                return;
+            }
+
+            let html = `
+                <div class="results-header">
+                    נמצאו ${data.num_results} תוצאות עבור: "${data.query}"
+                </div>
+                <div class="results-grid">
+            `;
+
+            data.results.forEach((result, index) => {
+                const filePathHash = result.thumbnail_url ? 
+                    result.thumbnail_url.split('/').pop() : 
+                    null;
+                
+                html += `
+                    <div class="result-item" onclick="openImage('${result.file_path}')">
+                        <div class="result-thumbnail" id="thumb-${index}">
+                            ${result.thumbnail_url ? 
+                                `<img src="${result.thumbnail_url}" alt="${result.file_name}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder\\'>שגיאה בטעינת תמונה</div>'">` :
+                                `<div class="placeholder loading">מייצר תמונה קטנה...</div>`
+                            }
+                        </div>
+                        <div class="result-info">
+                            <div class="result-score">דמיון: ${(result.score * 100).toFixed(1)}%</div>
+                            <div class="result-filename">${result.file_name}</div>
+                            <div class="result-path">${result.file_path}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            resultsContent.innerHTML = html;
+        }
+
+        async function generateMissingThumbnails(results) {
+            // Find results without thumbnails
+            const missingThumbnails = results
+                .filter(r => !r.thumbnail_url)
+                .map(r => r.file_path);
+
+            if (missingThumbnails.length === 0) return;
+
+            try {
+                // Request thumbnail generation
+                const response = await fetch('/api/generate-thumbnails', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_paths: missingThumbnails
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update thumbnails as they become available
+                    for (let i = 0; i < results.length; i++) {
+                        const result = results[i];
+                        if (!result.thumbnail_url) {
+                            // Check periodically if thumbnail is ready (don't await - run in parallel)
+                            checkThumbnailReady(result.file_path, i);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to generate thumbnails:', error);
+            }
+        }
+
+        async function getThumbnailHash(filePath) {
+            try {
+                const response = await fetch('/api/get-thumbnail-hash', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ file_path: filePath })
+                });
+                const data = await response.json();
+                return data.hash;
+            } catch (error) {
+                console.error('Error getting hash:', error);
+                return null;
+            }
+        }
+
+        async function checkThumbnailReady(filePath, index) {
+            // Get hash from server
+            const filePathHash = await getThumbnailHash(filePath);
+            if (!filePathHash) return;
+            
+            // For now, we'll use a simple polling approach
+            // In production, you might want to use WebSockets or Server-Sent Events
+            const maxAttempts = 10;
+            let attempts = 0;
+            
+            const checkInterval = setInterval(async () => {
+                attempts++;
+                
+                try {
+                    const response = await fetch(`/api/check-thumbnail/${filePathHash}`);
+                    const data = await response.json();
+                    
+                    if (data.exists) {
+                        clearInterval(checkInterval);
+                        
+                        // Update the thumbnail in the UI
+                        const thumbElement = document.getElementById(`thumb-${index}`);
+                        if (thumbElement) {
+                            thumbElement.innerHTML = `<img src="${data.url}" alt="${filePath}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder\\'>שגיאה בטעינת תמונה</div>'">`;
+                        }
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        const thumbElement = document.getElementById(`thumb-${index}`);
+                        if (thumbElement) {
+                            thumbElement.innerHTML = '<div class="placeholder">לא ניתן ליצור תמונה קטנה</div>';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking thumbnail:', error);
+                    if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                    }
+                }
+            }, 1000); // Check every second
+        }
+
+        function openImage(filePath) {
+            // Open image in default viewer
+            window.open(`file://${filePath}`, '_blank');
+        }
+
+        // Allow Enter key to search
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch(e);
+            }
+        });
+    </script>
+</body>
+</html>
+

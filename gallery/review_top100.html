@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Village/Landscape Review - Top 100</title>
+    <style>
+        body { font-family: Arial; background: #1a1a1a; color: white; padding: 20px; }
+        h1 { text-align: center; }
+        .instructions { text-align: center; margin: 20px; padding: 15px; background: #333; border-radius: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .item { position: relative; cursor: pointer; border: 3px solid transparent; border-radius: 8px; overflow: hidden; }
+        .item.selected { border-color: #00ff00; }
+        .item.rejected { border-color: #ff0000; opacity: 0.4; }
+        .item img { width: 100%; display: block; }
+        .item .info { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 5px; font-size: 11px; }
+        .controls { position: fixed; bottom: 20px; right: 20px; background: #333; padding: 15px; border-radius: 8px; }
+        .controls button { padding: 10px 20px; margin: 5px; cursor: pointer; font-size: 14px; }
+        #results { margin-top: 20px; padding: 15px; background: #333; border-radius: 8px; display: none; }
+    </style>
+</head>
+<body>
+    <h1>🏘️ Village/Landscape Review - Top 100</h1>
+    <div class="instructions">
+        <b>Click images:</b> Green = Good (village/landscape) | Red = Bad (people/other)<br>
+        Click again to toggle. When done, click "Get Selected IDs"
+    </div>
+    <div class="grid">
+
+        <div class="item" data-id="8580" onclick="toggle(this)">
+            <img src="thumbnails/4d7723cb63c32f15909045b388c679e5.jpg" loading="lazy">
+            <div class="info">ID:8580 conf:0.079</div>
+        </div>
+
+        <div class="item" data-id="123" onclick="toggle(this)">
+            <img src="thumbnails/c93110957271721fba5dcf3485664d8d.jpg" loading="lazy">
+            <div class="info">ID:123 conf:0.077</div>
+        </div>
+
+        <div class="item" data-id="10903" onclick="toggle(this)">
+            <img src="thumbnails/71e25bc3202fd55a23dd7d964c965777.jpg" loading="lazy">
+            <div class="info">ID:10903 conf:0.074</div>
+        </div>
+
+        <div class="item" data-id="7066" onclick="toggle(this)">
+            <img src="thumbnails/fcc2baed7ed61bdfeb0d2ec007add082.jpg" loading="lazy">
+            <div class="info">ID:7066 conf:0.074</div>
+        </div>
+
+        <div class="item" data-id="4769" onclick="toggle(this)">
+            <img src="thumbnails/4f62b7b1dfd197efd78b737404519800.jpg" loading="lazy">
+            <div class="info">ID:4769 conf:0.072</div>
+        </div>
+
+        <div class="item" data-id="3406" onclick="toggle(this)">
+            <img src="thumbnails/f79c63d508458f38aba0aa97a8719f8d.jpg" loading="lazy">
+            <div class="info">ID:3406 conf:0.069</div>
+        </div>
+
+        <div class="item" data-id="10525" onclick="toggle(this)">
+            <img src="thumbnails/b629da3a286a3bd681ca9c258275df77.jpg" loading="lazy">
+            <div class="info">ID:10525 conf:0.068</div>
+        </div>
+
+        <div class="item" data-id="6557" onclick="toggle(this)">
+            <img src="thumbnails/f6750c6c22a4242aec1e2172ae16278b.jpg" loading="lazy">
+            <div class="info">ID:6557 conf:0.068</div>
+        </div>
+
+        <div class="item" data-id="2601" onclick="toggle(this)">
+            <img src="thumbnails/46cf0a84129f9343d5501a76a43975e3.jpg" loading="lazy">
+            <div class="info">ID:2601 conf:0.068</div>
+        </div>
+
+        <div class="item" data-id="2230" onclick="toggle(this)">
+            <img src="thumbnails/4ad53bb75f4f9f0b8070490490466d33.jpg" loading="lazy">
+            <div class="info">ID:2230 conf:0.068</div>
+        </div>
+
+        <div class="item" data-id="1621" onclick="toggle(this)">
+            <img src="thumbnails/dcb6733ac20ada90af0bb68a8b3dffe6.jpg" loading="lazy">
+            <div class="info">ID:1621 conf:0.067</div>
+        </div>
+
+        <div class="item" data-id="2672" onclick="toggle(this)">
+            <img src="thumbnails/1ff34f13ffb726c9d60704103ecf832a.jpg" loading="lazy">
+            <div class="info">ID:2672 conf:0.067</div>
+        </div>
+
+        <div class="item" data-id="3140" onclick="toggle(this)">
+            <img src="thumbnails/4361bc65424e6e60f4758aebb7cb00a3.jpg" loading="lazy">
+            <div class="info">ID:3140 conf:0.066</div>
+        </div>
+
+        <div class="item" data-id="7365" onclick="toggle(this)">
+            <img src="thumbnails/b9a27c9266f03b026c252dabe6023dcc.jpg" loading="lazy">
+            <div class="info">ID:7365 conf:0.066</div>
+        </div>
+
+        <div class="item" data-id="2028" onclick="toggle(this)">
+            <img src="thumbnails/a1c5e6645e44ab926e1b6c637801178d.jpg" loading="lazy">
+            <div class="info">ID:2028 conf:0.066</div>
+        </div>
+
+        <div class="item" data-id="12746" onclick="toggle(this)">
+            <img src="thumbnails/90a2ae1934ac0be607adc7f5caa96b9d.jpg" loading="lazy">
+            <div class="info">ID:12746 conf:0.065</div>
+        </div>
+
+        <div class="item" data-id="4998" onclick="toggle(this)">
+            <img src="thumbnails/699a4729a9ea797bb38702de572a17d4.jpg" loading="lazy">
+            <div class="info">ID:4998 conf:0.065</div>
+        </div>
+
+        <div class="item" data-id="10913" onclick="toggle(this)">
+            <img src="thumbnails/87616c1c882df82d96ea7dce482b650e.jpg" loading="lazy">
+            <div class="info">ID:10913 conf:0.065</div>
+        </div>
+
+        <div class="item" data-id="8252" onclick="toggle(this)">
+            <img src="thumbnails/cb048d4eea047627ccaefe0811169895.jpg" loading="lazy">
+            <div class="info">ID:8252 conf:0.064</div>
+        </div>
+
+        <div class="item" data-id="11648" onclick="toggle(this)">
+            <img src="thumbnails/ade2956217925c64eaf1c38d02db3e52.jpg" loading="lazy">
+            <div class="info">ID:11648 conf:0.064</div>
+        </div>
+
+        <div class="item" data-id="7777" onclick="toggle(this)">
+            <img src="thumbnails/451ca22dfce1703bf8af7f607d463abe.jpg" loading="lazy">
+            <div class="info">ID:7777 conf:0.064</div>
+        </div>
+
+        <div class="item" data-id="3041" onclick="toggle(this)">
+            <img src="thumbnails/912b258d90ae40a820a4dc3e8880a493.jpg" loading="lazy">
+            <div class="info">ID:3041 conf:0.064</div>
+        </div>
+
+        <div class="item" data-id="1251" onclick="toggle(this)">
+            <img src="thumbnails/13d5f7a10bff777c64aff0652f5aa7f6.jpg" loading="lazy">
+            <div class="info">ID:1251 conf:0.064</div>
+        </div>
+
+        <div class="item" data-id="5101" onclick="toggle(this)">
+            <img src="thumbnails/3775e74b2f2c58c2d169d7ddafa1050a.jpg" loading="lazy">
+            <div class="info">ID:5101 conf:0.064</div>
+        </div>
+
+        <div class="item" data-id="1529" onclick="toggle(this)">
+            <img src="thumbnails/78c6d3f2ee9788b2b858edc055d4879b.jpg" loading="lazy">
+            <div class="info">ID:1529 conf:0.063</div>
+        </div>
+
+        <div class="item" data-id="12353" onclick="toggle(this)">
+            <img src="thumbnails/b965acd459e81f0a7531770031dbb129.jpg" loading="lazy">
+            <div class="info">ID:12353 conf:0.063</div>
+        </div>
+
+        <div class="item" data-id="9834" onclick="toggle(this)">
+            <img src="thumbnails/bd019c713f6971f1359533c3ecbd48f2.jpg" loading="lazy">
+            <div class="info">ID:9834 conf:0.063</div>
+        </div>
+
+        <div class="item" data-id="6093" onclick="toggle(this)">
+            <img src="thumbnails/92c4ec338114a307e39fe5ccd2f275ed.jpg" loading="lazy">
+            <div class="info">ID:6093 conf:0.062</div>
+        </div>
+
+        <div class="item" data-id="2104" onclick="toggle(this)">
+            <img src="thumbnails/8e477d6d7ad7348e5236a821c15ec394.jpg" loading="lazy">
+            <div class="info">ID:2104 conf:0.062</div>
+        </div>
+
+        <div class="item" data-id="837" onclick="toggle(this)">
+            <img src="thumbnails/2900502836f4321c805b791f077e6c5b.jpg" loading="lazy">
+            <div class="info">ID:837 conf:0.062</div>
+        </div>
+
+        <div class="item" data-id="10501" onclick="toggle(this)">
+            <img src="thumbnails/ee4a08ed47278709d3e25fa82fed677f.jpg" loading="lazy">
+            <div class="info">ID:10501 conf:0.061</div>
+        </div>
+
+        <div class="item" data-id="2006" onclick="toggle(this)">
+            <img src="thumbnails/6670fcb8ed3c7dcd54d8036d33cc6b8f.jpg" loading="lazy">
+            <div class="info">ID:2006 conf:0.061</div>
+        </div>
+
+        <div class="item" data-id="2775" onclick="toggle(this)">
+            <img src="thumbnails/277b42d040045501991e37e0398b2a7e.jpg" loading="lazy">
+            <div class="info">ID:2775 conf:0.061</div>
+        </div>
+
+        <div class="item" data-id="879" onclick="toggle(this)">
+            <img src="thumbnails/f91400c01ebfe1f01289cc1b12033fbb.jpg" loading="lazy">
+            <div class="info">ID:879 conf:0.061</div>
+        </div>
+
+        <div class="item" data-id="8742" onclick="toggle(this)">
+            <img src="thumbnails/ad920daf476fd604c875eeb8ac271a00.jpg" loading="lazy">
+            <div class="info">ID:8742 conf:0.061</div>
+        </div>
+
+        <div class="item" data-id="3434" onclick="toggle(this)">
+            <img src="thumbnails/51e1fac67b2d2b1a272026afa81d7afe.jpg" loading="lazy">
+            <div class="info">ID:3434 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="6148" onclick="toggle(this)">
+            <img src="thumbnails/0854c26419cc8dc6d7ab5928b8d820c9.jpg" loading="lazy">
+            <div class="info">ID:6148 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="5267" onclick="toggle(this)">
+            <img src="thumbnails/975aa46cb09cca248dac2fb6352b5226.jpg" loading="lazy">
+            <div class="info">ID:5267 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="5931" onclick="toggle(this)">
+            <img src="thumbnails/f223041b11cca17f220927e4d858a2c9.jpg" loading="lazy">
+            <div class="info">ID:5931 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="4310" onclick="toggle(this)">
+            <img src="thumbnails/94b66566a8de8853defeb8f2e79ef757.jpg" loading="lazy">
+            <div class="info">ID:4310 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="4317" onclick="toggle(this)">
+            <img src="thumbnails/44ccb2ab5ae1746c6c99d324d25f64c4.jpg" loading="lazy">
+            <div class="info">ID:4317 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="4414" onclick="toggle(this)">
+            <img src="thumbnails/698d2d04245970fb16866e771622c458.jpg" loading="lazy">
+            <div class="info">ID:4414 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="345" onclick="toggle(this)">
+            <img src="thumbnails/d24f34f6878c183b663476d07bdc7464.jpg" loading="lazy">
+            <div class="info">ID:345 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="1318" onclick="toggle(this)">
+            <img src="thumbnails/cd44f467bac93c79abbc2981a8045370.jpg" loading="lazy">
+            <div class="info">ID:1318 conf:0.060</div>
+        </div>
+
+        <div class="item" data-id="5010" onclick="toggle(this)">
+            <img src="thumbnails/ab566e9bdea6a46544a1508fa1ca26ef.jpg" loading="lazy">
+            <div class="info">ID:5010 conf:0.059</div>
+        </div>
+
+        <div class="item" data-id="5245" onclick="toggle(this)">
+            <img src="thumbnails/2f17458f838cea72aa32be7287bd769a.jpg" loading="lazy">
+            <div class="info">ID:5245 conf:0.059</div>
+        </div>
+
+        <div class="item" data-id="6744" onclick="toggle(this)">
+            <img src="thumbnails/4e9a13d15336d89ec4857046026c7318.jpg" loading="lazy">
+            <div class="info">ID:6744 conf:0.059</div>
+        </div>
+
+        <div class="item" data-id="7531" onclick="toggle(this)">
+            <img src="thumbnails/91e00cbb166bfc2559f1d5137bd87523.jpg" loading="lazy">
+            <div class="info">ID:7531 conf:0.059</div>
+        </div>
+
+        <div class="item" data-id="4313" onclick="toggle(this)">
+            <img src="thumbnails/9ceb094aacac6643e3df81f1b24275a4.jpg" loading="lazy">
+            <div class="info">ID:4313 conf:0.059</div>
+        </div>
+
+        <div class="item" data-id="12102" onclick="toggle(this)">
+            <img src="thumbnails/401eea2ade981d91a36244ce4f7f411e.jpg" loading="lazy">
+            <div class="info">ID:12102 conf:0.059</div>
+        </div>
+
+        <div class="item" data-id="7683" onclick="toggle(this)">
+            <img src="thumbnails/d0b85fef87e94a2a4b5044dc05fead45.jpg" loading="lazy">
+            <div class="info">ID:7683 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="8840" onclick="toggle(this)">
+            <img src="thumbnails/f07fda637c5005d6107be192366404be.jpg" loading="lazy">
+            <div class="info">ID:8840 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="4257" onclick="toggle(this)">
+            <img src="thumbnails/3184aa20496e46d29d87216980b9e043.jpg" loading="lazy">
+            <div class="info">ID:4257 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="941" onclick="toggle(this)">
+            <img src="thumbnails/13051674c1741775acfae7d270a4174d.jpg" loading="lazy">
+            <div class="info">ID:941 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="5441" onclick="toggle(this)">
+            <img src="thumbnails/f6853f5e2317e4d632a8651d3b5372e2.jpg" loading="lazy">
+            <div class="info">ID:5441 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="3978" onclick="toggle(this)">
+            <img src="thumbnails/90427b1d82be11fbf40d1f2b91f0b0b4.jpg" loading="lazy">
+            <div class="info">ID:3978 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="1434" onclick="toggle(this)">
+            <img src="thumbnails/ec1c32da2a96cbd20e544477d344b21a.jpg" loading="lazy">
+            <div class="info">ID:1434 conf:0.058</div>
+        </div>
+
+        <div class="item" data-id="1641" onclick="toggle(this)">
+            <img src="thumbnails/8ced4a2d66916adfa16d215cc65204d5.jpg" loading="lazy">
+            <div class="info">ID:1641 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="9385" onclick="toggle(this)">
+            <img src="thumbnails/54e7abed9fc9f4e38428f7358e763b30.jpg" loading="lazy">
+            <div class="info">ID:9385 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="12426" onclick="toggle(this)">
+            <img src="thumbnails/8662516232055a8e612349e5af3c42b3.jpg" loading="lazy">
+            <div class="info">ID:12426 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="3258" onclick="toggle(this)">
+            <img src="thumbnails/97195bcb4b143e26becd57d5e24de7ca.jpg" loading="lazy">
+            <div class="info">ID:3258 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="10307" onclick="toggle(this)">
+            <img src="thumbnails/f1993e129e5ca277a661dc71147d085b.jpg" loading="lazy">
+            <div class="info">ID:10307 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="6258" onclick="toggle(this)">
+            <img src="thumbnails/31f3890bfc350bf758d8227e738e2705.jpg" loading="lazy">
+            <div class="info">ID:6258 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="608" onclick="toggle(this)">
+            <img src="thumbnails/7a9482a63d741e112e0ae865b0ef588d.jpg" loading="lazy">
+            <div class="info">ID:608 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="7797" onclick="toggle(this)">
+            <img src="thumbnails/4ee8298681d4231ddd1d568ea3f30978.jpg" loading="lazy">
+            <div class="info">ID:7797 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="6463" onclick="toggle(this)">
+            <img src="thumbnails/80987c757ce7e6a0ed69fd1421d56532.jpg" loading="lazy">
+            <div class="info">ID:6463 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="5744" onclick="toggle(this)">
+            <img src="thumbnails/c32f716b5e0791d903bd642965ef9453.jpg" loading="lazy">
+            <div class="info">ID:5744 conf:0.057</div>
+        </div>
+
+        <div class="item" data-id="6692" onclick="toggle(this)">
+            <img src="thumbnails/529f20ef07471f3628b3306ad1079c48.jpg" loading="lazy">
+            <div class="info">ID:6692 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="1425" onclick="toggle(this)">
+            <img src="thumbnails/dc839cc7714b8074ac6c41683bf70d43.jpg" loading="lazy">
+            <div class="info">ID:1425 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="6820" onclick="toggle(this)">
+            <img src="thumbnails/08b28d3898c5a22bd30b8ad2ba337032.jpg" loading="lazy">
+            <div class="info">ID:6820 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="10341" onclick="toggle(this)">
+            <img src="thumbnails/b3dc9412cea66948b3e43f0d43d72b0b.jpg" loading="lazy">
+            <div class="info">ID:10341 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="8416" onclick="toggle(this)">
+            <img src="thumbnails/c7173cab45d095b05f6c315ce92f8915.jpg" loading="lazy">
+            <div class="info">ID:8416 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="8729" onclick="toggle(this)">
+            <img src="thumbnails/d434c9cb17704b0a3f3023c118955ad5.jpg" loading="lazy">
+            <div class="info">ID:8729 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="2816" onclick="toggle(this)">
+            <img src="thumbnails/c1fb42b7734dddf9a4fe308e76cb9dc6.jpg" loading="lazy">
+            <div class="info">ID:2816 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="10149" onclick="toggle(this)">
+            <img src="thumbnails/6867860855964dd6c7c699b8b76a91b9.jpg" loading="lazy">
+            <div class="info">ID:10149 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="5277" onclick="toggle(this)">
+            <img src="thumbnails/e9bbafccf9c6e0e3ac0a3af898d0c2f6.jpg" loading="lazy">
+            <div class="info">ID:5277 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="6621" onclick="toggle(this)">
+            <img src="thumbnails/615ece63195ca2a16cc5b3e0f7d6e5a2.jpg" loading="lazy">
+            <div class="info">ID:6621 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="8786" onclick="toggle(this)">
+            <img src="thumbnails/f3da163b3561f120e7371474d3e40324.jpg" loading="lazy">
+            <div class="info">ID:8786 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="10345" onclick="toggle(this)">
+            <img src="thumbnails/83056ef8d076d93e654cac45fb0befcb.jpg" loading="lazy">
+            <div class="info">ID:10345 conf:0.056</div>
+        </div>
+
+        <div class="item" data-id="6072" onclick="toggle(this)">
+            <img src="thumbnails/8c25f86f4684e3bf3a6a2b3185ca5442.jpg" loading="lazy">
+            <div class="info">ID:6072 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="7119" onclick="toggle(this)">
+            <img src="thumbnails/d5163ec23e8afcacf9c2a88ace972c96.jpg" loading="lazy">
+            <div class="info">ID:7119 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="5973" onclick="toggle(this)">
+            <img src="thumbnails/56787e3dc5980b50196bd51c94a45a86.jpg" loading="lazy">
+            <div class="info">ID:5973 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="13153" onclick="toggle(this)">
+            <img src="thumbnails/f40fb62c424043037f3980d7ed2365d7.jpg" loading="lazy">
+            <div class="info">ID:13153 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="6554" onclick="toggle(this)">
+            <img src="thumbnails/fce88446ccd3b4aff6e346e25ee00eea.jpg" loading="lazy">
+            <div class="info">ID:6554 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="8133" onclick="toggle(this)">
+            <img src="thumbnails/3b730f2afadbb82bfeab2f691633ef8c.jpg" loading="lazy">
+            <div class="info">ID:8133 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="4071" onclick="toggle(this)">
+            <img src="thumbnails/5122c6ba24ebddcf05a85c5b2f3321af.jpg" loading="lazy">
+            <div class="info">ID:4071 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="6312" onclick="toggle(this)">
+            <img src="thumbnails/ac677d060399f3cde4a9533281beeeca.jpg" loading="lazy">
+            <div class="info">ID:6312 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="9968" onclick="toggle(this)">
+            <img src="thumbnails/d6d08a5cab36af75a72fbe8e4ebd637d.jpg" loading="lazy">
+            <div class="info">ID:9968 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="5238" onclick="toggle(this)">
+            <img src="thumbnails/24ecdcdd02292fb54daaa58ffa878854.jpg" loading="lazy">
+            <div class="info">ID:5238 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="6849" onclick="toggle(this)">
+            <img src="thumbnails/87e6fa312c0a6851cd4dbe39ff3a0b8f.jpg" loading="lazy">
+            <div class="info">ID:6849 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="3420" onclick="toggle(this)">
+            <img src="thumbnails/a969b46891d41c755a58fc3ed2bebfdd.jpg" loading="lazy">
+            <div class="info">ID:3420 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="1758" onclick="toggle(this)">
+            <img src="thumbnails/8c14c517912a8c5559f0a5472cf8c29e.jpg" loading="lazy">
+            <div class="info">ID:1758 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="7292" onclick="toggle(this)">
+            <img src="thumbnails/02f52a9e9a9f17cc950646ad6a6422b0.jpg" loading="lazy">
+            <div class="info">ID:7292 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="10437" onclick="toggle(this)">
+            <img src="thumbnails/008054605e384361bd9731ab7a54a1c3.jpg" loading="lazy">
+            <div class="info">ID:10437 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="12031" onclick="toggle(this)">
+            <img src="thumbnails/ace50a632dac37a7e27d2fce3844c28a.jpg" loading="lazy">
+            <div class="info">ID:12031 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="8602" onclick="toggle(this)">
+            <img src="thumbnails/142f8ef601d27e3e7daafcafdeb66001.jpg" loading="lazy">
+            <div class="info">ID:8602 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="8264" onclick="toggle(this)">
+            <img src="thumbnails/fe8a9ade61a76d984b2e326746ea2680.jpg" loading="lazy">
+            <div class="info">ID:8264 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="5645" onclick="toggle(this)">
+            <img src="thumbnails/8ee776d1aff8cec802223923430e98b9.jpg" loading="lazy">
+            <div class="info">ID:5645 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="8874" onclick="toggle(this)">
+            <img src="thumbnails/59ff4aacce78ee3f55bef8dfd971b62d.jpg" loading="lazy">
+            <div class="info">ID:8874 conf:0.055</div>
+        </div>
+
+        <div class="item" data-id="2472" onclick="toggle(this)">
+            <img src="thumbnails/66e102e715e5c2e6b93ae59136393b8f.jpg" loading="lazy">
+            <div class="info">ID:2472 conf:0.055</div>
+        </div>
+
+    </div>
+    <div class="controls">
+        <button onclick="selectAll()" style="background:#00ff00;">✓ Select All</button>
+        <button onclick="clearAll()" style="background:#ff6666;">✗ Clear All</button>
+        <button onclick="showResults()" style="background:#4488ff;color:white;">📋 Get Selected IDs</button>
+    </div>
+    <div id="results">
+        <h3>Selected IDs (copy this):</h3>
+        <textarea id="ids" rows="5" style="width:100%;"></textarea>
+    </div>
+    <script>
+        function toggle(el) {
+            if (el.classList.contains('selected')) {
+                el.classList.remove('selected');
+                el.classList.add('rejected');
+            } else if (el.classList.contains('rejected')) {
+                el.classList.remove('rejected');
+            } else {
+                el.classList.add('selected');
+            }
+        }
+        function selectAll() {
+            document.querySelectorAll('.item').forEach(el => {
+                el.classList.remove('rejected');
+                el.classList.add('selected');
+            });
+        }
+        function clearAll() {
+            document.querySelectorAll('.item').forEach(el => {
+                el.classList.remove('selected', 'rejected');
+            });
+        }
+        function showResults() {
+            const ids = [...document.querySelectorAll('.item.selected')].map(el => el.dataset.id);
+            document.getElementById('ids').value = ids.join(',');
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Check SHA-256 duplicate statistics
 
-DB_PATH="/Volumes/My Book/images-finder-data/metadata.db"
+DB_PATH="/Users/aviz/images-finder/data/metadata.db"
 
 echo "======================================================================"
 echo "  📊 SHA-256 Duplicate Detection Report"

@@ -9,7 +9,7 @@ import imagehash
 import time
 from datetime import timedelta
 
-DB_PATH = "/Volumes/My Book/images-finder-data/metadata.db"
+DB_PATH = "/Users/aviz/images-finder/data/metadata.db"
 
 def compute_perceptual_hash(file_path):
     """Compute perceptual hash."""

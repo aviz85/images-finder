@@ -4,8 +4,11 @@ import torch
 import open_clip
 from PIL import Image
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import Union, List, Optional, TYPE_CHECKING
 import numpy as np
+
+if TYPE_CHECKING:
+    from .config import Config
 
 
 class EmbeddingModel:
@@ -119,23 +122,35 @@ class EmbeddingModel:
         Returns:
             numpy array of shape (N, embedding_dim) or (embedding_dim,) for single text
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"encode_text: Starting encoding for {len(texts) if isinstance(texts, list) else 1} text(s)")
+        
         if isinstance(texts, str):
             texts = [texts]
             single = True
         else:
             single = False
 
+        logger.info("encode_text: Tokenizing text...")
         # Tokenize
         text_tokens = self.tokenizer(texts).to(self.device)
+        logger.info(f"encode_text: Tokenized, shape: {text_tokens.shape}")
 
+        logger.info("encode_text: Generating embeddings with model...")
         # Generate embeddings
         embeddings = self.model.encode_text(text_tokens)
+        logger.info(f"encode_text: Generated embeddings, shape: {embeddings.shape}")
 
+        logger.info("encode_text: Normalizing embeddings...")
         # Normalize if requested
         if normalize:
             embeddings = embeddings / embeddings.norm(dim=-1, keepdim=True)
 
+        logger.info("encode_text: Converting to numpy...")
         embeddings = embeddings.cpu().numpy()
+        logger.info("encode_text: Complete!")
 
         return embeddings[0] if single else embeddings
 
@@ -188,3 +203,29 @@ class EmbeddingCache:
     def __len__(self) -> int:
         """Get number of embeddings in cache."""
         return len(self.embeddings) if self.embeddings is not None else 0
+
+
+def create_embedding_model(config: 'Config') -> Union['EmbeddingModel', 'GeminiEmbeddingModel']:
+    """
+    Factory function to create the appropriate embedding model based on config.
+
+    Args:
+        config: Configuration object with embedding_mode and API keys
+
+    Returns:
+        EmbeddingModel (local) or GeminiEmbeddingModel (API)
+    """
+    embedding_mode = getattr(config, 'embedding_mode', 'local')
+    
+    if embedding_mode == 'gemini':
+        from .gemini_embeddings import GeminiEmbeddingModel
+        api_key = getattr(config, 'gemini_api_key', None)
+        embedding_dim = getattr(config, 'gemini_embedding_dim', 768)
+        return GeminiEmbeddingModel(api_key=api_key, embedding_dim=embedding_dim)
+    else:
+        # Default: local CLIP model
+        return EmbeddingModel(
+            model_name=config.model_name,
+            pretrained=config.pretrained,
+            device=config.device
+        )
